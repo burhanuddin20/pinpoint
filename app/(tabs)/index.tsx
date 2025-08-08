@@ -418,16 +418,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   poiCard: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#fff',
     borderRadius: 10,
     padding: 15,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   selectedPoiCard: {
     borderColor: '#2196F3',
     borderWidth: 2,
+    backgroundColor: '#f8f9ff',
   },
   poiHeader: {
     flexDirection: 'row',
@@ -441,7 +450,7 @@ const styles = StyleSheet.create({
   poiName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#333',
   },
   selectedPoiName: {
     color: '#2196F3',
@@ -456,22 +465,22 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   tag: {
-    backgroundColor: '#333',
+    backgroundColor: '#f5f5f5',
     borderRadius: 5,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: '#e0e0e0',
   },
   selectedTag: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
     borderColor: '#2196F3',
   },
   tagText: {
     fontSize: 12,
-    color: '#fff',
+    color: '#333',
   },
   selectedTagText: {
-    color: '#fff',
+    color: '#1976d2',
   },
 });

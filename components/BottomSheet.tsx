@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, View } from 'react-native';
-import { GestureHandlerRootView, PanGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, State } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 
 interface Props {
   expanded: boolean;
@@ -10,75 +10,79 @@ interface Props {
 }
 
 const windowHeight = Dimensions.get('window').height;
-const EXPANDED_Y = windowHeight * 0.3; // top edge when expanded (sheet covers ~70%)
-const COLLAPSED_Y = windowHeight - 160; // 160px tall when collapsed
+const EXPANDED_Y = windowHeight * 0.3;
+const COLLAPSED_Y = windowHeight - 160;
 
 export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed, children }: Props) {
-  const initialY = expanded ? EXPANDED_Y : COLLAPSED_Y;
-
-  const snapY = useRef(new Animated.Value(initialY)).current;
+  const [isDragging, setIsDragging] = useState(false);
+  const snapY = useRef(new Animated.Value(expanded ? EXPANDED_Y : COLLAPSED_Y)).current;
   const dragY = useRef(new Animated.Value(0)).current;
-  const lastSnap = useRef(initialY);
+  const panRef = useRef(null);
 
-  useEffect(() => {
-    const target = expanded ? EXPANDED_Y : COLLAPSED_Y;
-    if (lastSnap.current !== target) {
-      Animated.timing(snapY, {
-        toValue: target,
-        duration: 220,
-        useNativeDriver: true,
-      }).start(() => {
-        lastSnap.current = target;
-      });
-    }
-  }, [expanded, snapY]);
+  const translateY = Animated.add(snapY, dragY);
 
-  const translateY = useMemo(() => {
-    const added = Animated.add(snapY, dragY);
-    return added.interpolate({
-      inputRange: [EXPANDED_Y, COLLAPSED_Y],
-      outputRange: [EXPANDED_Y, COLLAPSED_Y],
-      extrapolate: 'clamp',
-    });
-  }, [snapY, dragY]);
+  const snapToPosition = (toExpanded: boolean) => {
+    const targetY = toExpanded ? EXPANDED_Y : COLLAPSED_Y;
+    
+    Animated.spring(snapY, {
+      toValue: targetY,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 8,
+    }).start();
+  };
 
-  const onGestureEvent = Animated.event<PanGestureHandlerGestureEvent['nativeEvent']>(
+  const onGestureEvent = Animated.event(
     [{ nativeEvent: { translationY: dragY } }],
-    { useNativeDriver: false }
+    { useNativeDriver: true }
   );
 
-  const handleStateChange = (event: PanGestureHandlerStateChangeEvent) => {
-    const { state, velocityY, translationY } = event.nativeEvent as any;
-    if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
-      const startY = lastSnap.current;
-      const currentUnclamped = startY + (typeof translationY === 'number' ? translationY : 0);
-      const currentY = Math.max(EXPANDED_Y, Math.min(currentUnclamped, COLLAPSED_Y));
-      const midpoint = (EXPANDED_Y + COLLAPSED_Y) / 2;
-      const shouldCollapse = velocityY > 400 || currentY > midpoint;
-      const target = shouldCollapse ? COLLAPSED_Y : EXPANDED_Y;
-
-      Animated.timing(snapY, {
-        toValue: target,
-        duration: 220,
-        useNativeDriver: true,
-      }).start(() => {
-        lastSnap.current = target;
-      });
-
-      dragY.setValue(0);
-
-      if (shouldCollapse) {
+  const onHandlerStateChange = (event: any) => {
+    const { state, translationY, velocityY } = event.nativeEvent;
+    
+    if (state === State.BEGAN) {
+      setIsDragging(true);
+    }
+    
+    if (state === State.END || state === State.CANCELLED) {
+      setIsDragging(false);
+      
+      const currentSnapY = snapY._value;
+      const currentDragY = dragY._value;
+      const currentY = currentSnapY + currentDragY;
+      const shouldExpand = velocityY < -500 || currentY < (EXPANDED_Y + COLLAPSED_Y) / 2;
+      
+      if (shouldExpand && !expanded) {
+        snapToPosition(true);
+        onSnapExpanded();
+      } else if (!shouldExpand && expanded) {
+        snapToPosition(false);
         onSnapCollapsed();
       } else {
-        onSnapExpanded();
+        // Snap back to current position
+        snapToPosition(expanded);
       }
+      
+      // Reset drag
+      dragY.setValue(0);
     }
   };
+
+  // Update position when expanded prop changes (but not during drag)
+  React.useEffect(() => {
+    if (!isDragging) {
+      snapToPosition(expanded);
+    }
+  }, [expanded, isDragging]);
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <GestureHandlerRootView style={StyleSheet.absoluteFill}>
-        <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={handleStateChange}>
+        <PanGestureHandler 
+          ref={panRef}
+          onGestureEvent={onGestureEvent} 
+          onHandlerStateChange={onHandlerStateChange}
+        >
           <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}> 
             <View style={styles.grabberContainer}>
               <View style={styles.grabber} />
