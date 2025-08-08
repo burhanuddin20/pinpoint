@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import PoiList from '../../components/PoiList';
+import BottomSheet from '../../components/BottomSheet';
 import PoiMarker from '../../components/PoiMarker';
 import SearchBar from '../../components/SearchBar';
+import { useBottomSheet } from '../../contexts/BottomSheetContext';
 import { mockPOIs, POI } from '../../data/pois';
 
 interface GeocodingResult {
@@ -32,9 +33,10 @@ export default function MapScreen() {
   // POI states
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
   const [pois] = useState<POI[]>(mockPOIs);
+  const { isExpanded, setIsExpanded } = useBottomSheet();
   
   const mapRef = useRef<MapView>(null);
-  const listRef = useRef<any>(null);
+  const listRef = useRef<FlatList<POI>>(null);
 
   useEffect(() => {
     (async () => {
@@ -166,15 +168,62 @@ export default function MapScreen() {
   const handleMarkerPress = (poi: POI) => {
     setSelectedPoiId(poi.id);
     
-    // Scroll list to the selected POI
+    // Animate map to marker
+    const newRegion = {
+      latitude: poi.lat,
+      longitude: poi.lon,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    };
+    setRegion(newRegion);
+    mapRef.current?.animateToRegion(newRegion, 1000);
+    
+    // Scroll list to item
     const poiIndex = pois.findIndex(p => p.id === poi.id);
-    if (poiIndex !== -1) {
-      listRef.current?.scrollToIndex({
+    if (poiIndex !== -1 && listRef.current) {
+      listRef.current.scrollToIndex({
         index: poiIndex,
         animated: true,
         viewPosition: 0.5,
       });
     }
+  };
+
+  const renderPoiItem = ({ item, index }: { item: POI; index: number }) => {
+    const isSelected = selectedPoiId === item.id;
+    
+    return (
+      <TouchableOpacity
+        style={[styles.poiCard, isSelected && styles.selectedPoiCard]}
+        onPress={() => handlePoiPress(item)}
+      >
+        <View style={styles.poiHeader}>
+          <View style={styles.poiInfo}>
+            <Text style={[styles.poiName, isSelected && styles.selectedPoiName]}>
+              {item.name}
+            </Text>
+            <Text style={styles.poiDistance}>
+              {index + 1} of {pois.length}
+            </Text>
+          </View>
+          <Ionicons 
+            name="location" 
+            size={20} 
+            color={isSelected ? '#2196F3' : '#666'} 
+          />
+        </View>
+        
+        <View style={styles.tagsContainer}>
+          {item.tags.map((tag, tagIndex) => (
+            <View key={tagIndex} style={[styles.tag, isSelected && styles.selectedTag]}>
+              <Text style={[styles.tagText, isSelected && styles.selectedTagText]}>
+                {tag}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   const getStatusColor = () => {
@@ -197,10 +246,16 @@ export default function MapScreen() {
 
   const getStatusIcon = () => {
     switch (locationStatus) {
-      case 'granted': return 'location';
-      case 'denied': return 'location-outline';
-      case 'error': return 'warning';
-      default: return 'location-outline';
+      case 'loading':
+        return <Ionicons name="time" size={12} color="#fff" />;
+      case 'granted':
+        return <Ionicons name="checkmark-circle" size={12} color="#fff" />;
+      case 'denied':
+        return <Ionicons name="close-circle" size={12} color="#fff" />;
+      case 'error':
+        return <Ionicons name="warning" size={12} color="#fff" />;
+      default:
+        return <Ionicons name="time" size={12} color="#fff" />;
     }
   };
 
@@ -208,17 +263,15 @@ export default function MapScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
       
-      {/* Modern Header */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.titleContainer}>
-            <Ionicons name="map" size={24} color="#fff" />
+            <Ionicons name="map" size={20} color="#2196F3" />
             <Text style={styles.title}>Pinpoint</Text>
           </View>
-          
-          {/* Status Indicator */}
           <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]}>
-            <Ionicons name={getStatusIcon()} size={16} color="#fff" />
+            {getStatusIcon()}
             <Text style={styles.statusText}>{getStatusText()}</Text>
           </View>
         </View>
@@ -278,12 +331,21 @@ export default function MapScreen() {
       </View>
 
       {/* POI List */}
-      <PoiList
-        pois={pois}
-        selectedPoiId={selectedPoiId}
-        onPoiPress={handlePoiPress}
-        listRef={listRef}
-      />
+      <BottomSheet
+        expanded={isExpanded}
+        onSnapExpanded={() => setIsExpanded(true)}
+        onSnapCollapsed={() => setIsExpanded(false)}
+      >
+        <FlatList
+          ref={listRef}
+          data={pois}
+          renderItem={renderPoiItem}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          style={styles.list}
+        />
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -296,7 +358,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#1a1a1a',
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },
@@ -308,24 +370,24 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
   },
   statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+    gap: 4,
   },
   statusText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   mapContainer: {
@@ -353,5 +415,77 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
+  },
+  listContent: {
+    padding: 10,
+  },
+  list: {
+    flex: 1,
+  },
+  poiCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  selectedPoiCard: {
+    borderColor: '#2196F3',
+    borderWidth: 2,
+    backgroundColor: '#f8f9ff',
+  },
+  poiHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  poiInfo: {
+    flex: 1,
+  },
+  poiName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  selectedPoiName: {
+    color: '#2196F3',
+  },
+  poiDistance: {
+    fontSize: 12,
+    color: '#666',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+  },
+  tag: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  selectedTag: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#2196F3',
+  },
+  tagText: {
+    fontSize: 12,
+    color: '#333',
+  },
+  selectedTagText: {
+    color: '#1976d2',
   },
 });
