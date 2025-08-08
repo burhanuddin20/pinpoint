@@ -188,16 +188,26 @@ Key dependencies include:
 - Clear Metro cache: `npx expo start --clear`
 - Reinstall dependencies: `npm install`
 
-## 📈 Future Enhancements
+## 📈 Backend + Search
 
-### Planned Features
+### Server (Google Places Proxy)
+- Location: `server/`
+- Env: create `server/.env` with `GOOGLE_PLACES_KEY` and `PORT`
+- Run: `cd server && npm install && npm run dev`
+- Endpoint: GET `/places/nearby?lat=..&lon=..&type=cafe&radius=1500&query=coffee`
 
-- [ ] Custom map markers
-- [ ] Route planning and navigation
-- [ ] Location history
-- [ ] Offline map support
-- [ ] Search functionality
-- [ ] Multiple map styles
+### Mobile Env
+- Copy `constants/env.example` to `.env`
+- Set `EXPO_PUBLIC_BACKEND_URL` to your server, e.g. `http://localhost:4000`
+
+### Usage
+- Type in the search bar (e.g., "coffee near me") and press search/return
+- Intent parsing:
+  - contains "coffee" or "cafe" -> type=cafe
+  - contains "pizza" -> type=restaurant + query=pizza
+  - else -> type=restaurant
+- Bottom sheet snaps: expanded fits all POIs, collapsed zooms to active
+- Cards provide Directions/Call/Website actions
 - [ ] Location sharing
 - [ ] Geofencing capabilities
 

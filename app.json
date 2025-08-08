@@ -48,6 +48,9 @@
         }
       ]
     ],
+    "extra": {
+      "BACKEND_URL": "${EXPO_PUBLIC_BACKEND_URL}"
+    },
     "experiments": {
       "typedRoutes": true
     }
