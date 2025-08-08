@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '../../components/BottomSheet';
 import PoiMarker from '../../components/PoiMarker';
 import SearchBar from '../../components/SearchBar';
+import { useBottomSheet } from '../../contexts/BottomSheetContext';
 import { mockPOIs, POI } from '../../data/pois';
 
 interface GeocodingResult {
@@ -32,7 +33,7 @@ export default function MapScreen() {
   // POI states
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
   const [pois] = useState<POI[]>(mockPOIs);
-  const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
+  const { isExpanded, setIsExpanded } = useBottomSheet();
   
   const mapRef = useRef<MapView>(null);
   const listRef = useRef<FlatList<POI>>(null);
@@ -327,9 +328,9 @@ export default function MapScreen() {
 
       {/* POI List */}
       <BottomSheet
-        expanded={isBottomSheetExpanded}
-        onSnapExpanded={() => setIsBottomSheetExpanded(true)}
-        onSnapCollapsed={() => setIsBottomSheetExpanded(false)}
+        expanded={isExpanded}
+        onSnapExpanded={() => setIsExpanded(true)}
+        onSnapCollapsed={() => setIsExpanded(false)}
       >
         <FlatList
           ref={listRef}
