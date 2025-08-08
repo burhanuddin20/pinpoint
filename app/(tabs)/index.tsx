@@ -246,10 +246,16 @@ export default function MapScreen() {
 
   const getStatusIcon = () => {
     switch (locationStatus) {
-      case 'granted': return 'location';
-      case 'denied': return 'location-outline';
-      case 'error': return 'warning';
-      default: return 'location-outline';
+      case 'loading':
+        return <Ionicons name="time" size={12} color="#fff" />;
+      case 'granted':
+        return <Ionicons name="checkmark-circle" size={12} color="#fff" />;
+      case 'denied':
+        return <Ionicons name="close-circle" size={12} color="#fff" />;
+      case 'error':
+        return <Ionicons name="warning" size={12} color="#fff" />;
+      default:
+        return <Ionicons name="time" size={12} color="#fff" />;
     }
   };
 
@@ -257,17 +263,15 @@ export default function MapScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
       
-      {/* Modern Header */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.titleContainer}>
-            <Ionicons name="map" size={24} color="#fff" />
+            <Ionicons name="map" size={20} color="#2196F3" />
             <Text style={styles.title}>Pinpoint</Text>
           </View>
-          
-          {/* Status Indicator */}
           <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]}>
-            <Ionicons name={getStatusIcon()} size={16} color="#fff" />
+            {getStatusIcon()}
             <Text style={styles.statusText}>{getStatusText()}</Text>
           </View>
         </View>
@@ -354,7 +358,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#1a1a1a',
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },
@@ -366,24 +370,24 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
   },
   statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+    gap: 4,
   },
   statusText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   mapContainer: {
