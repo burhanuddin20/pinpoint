@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Dimensions, StyleSheet, View } from 'react-native';
-import { PanGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, State } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, PanGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, State } from 'react-native-gesture-handler';
 
 interface Props {
   expanded: boolean;
@@ -77,16 +77,18 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={handleStateChange}>
-        <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}> 
-          <View style={styles.grabberContainer}>
-            <View style={styles.grabber} />
-          </View>
-          <View style={styles.content}>
-            {children}
-          </View>
-        </Animated.View>
-      </PanGestureHandler>
+      <GestureHandlerRootView style={StyleSheet.absoluteFill}>
+        <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={handleStateChange}>
+          <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}> 
+            <View style={styles.grabberContainer}>
+              <View style={styles.grabber} />
+            </View>
+            <View style={styles.content}>
+              {children}
+            </View>
+          </Animated.View>
+        </PanGestureHandler>
+      </GestureHandlerRootView>
     </View>
   );
 }
