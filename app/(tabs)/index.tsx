@@ -267,7 +267,7 @@ export default function MapScreen() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.titleContainer}>
-            <Ionicons name="map" size={20} color="#2196F3" />
+            <Ionicons name="map" size={20} color="#fff" />
             <Text style={styles.title}>Pinpoint</Text>
           </View>
           <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]}>
