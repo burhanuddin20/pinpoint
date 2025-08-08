@@ -1,9 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import PoiList from '../../components/PoiList';
+import PoiMarker from '../../components/PoiMarker';
+import SearchBar from '../../components/SearchBar';
+import { mockPOIs, POI } from '../../data/pois';
+
+interface GeocodingResult {
+  place_name: string;
+  center: [number, number]; // [longitude, latitude]
+}
 
 export default function MapScreen() {
   const [region, setRegion] = useState<Region>({
@@ -14,6 +23,18 @@ export default function MapScreen() {
   });
   const [locationStatus, setLocationStatus] = useState<'loading' | 'granted' | 'denied' | 'error'>('loading');
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  
+  // Search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  
+  // POI states
+  const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
+  const [pois] = useState<POI[]>(mockPOIs);
+  
+  const mapRef = useRef<MapView>(null);
+  const listRef = useRef<any>(null);
 
   useEffect(() => {
     (async () => {
@@ -63,6 +84,98 @@ export default function MapScreen() {
       }
     })();
   }, []);
+
+  const searchLocation = async (query: string) => {
+    if (!query.trim()) return;
+    
+    setIsSearching(true);
+    setSearchError(null);
+    
+    try {
+      // Replace with your Mapbox access token
+      const MAPBOX_ACCESS_TOKEN = 'YOUR_MAPBOX_ACCESS_TOKEN';
+      const encodedQuery = encodeURIComponent(query);
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedQuery}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Geocoding request failed');
+      }
+      
+      if (data.features && data.features.length > 0) {
+        const result: GeocodingResult = data.features[0];
+        const [longitude, latitude] = result.center;
+        
+        // Animate map to the found location
+        const newRegion: Region = {
+          latitude,
+          longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        };
+        
+        setRegion(newRegion);
+        
+        // Animate the map
+        mapRef.current?.animateToRegion(newRegion, 1000);
+        
+        // Clear search query after successful search
+        setSearchQuery('');
+      } else {
+        setSearchError('No location found for this search');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setSearchError('Failed to search location. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchSubmit = () => {
+    searchLocation(searchQuery);
+  };
+
+  const handlePoiPress = (poi: POI) => {
+    setSelectedPoiId(poi.id);
+    
+    // Animate map to POI location
+    const newRegion: Region = {
+      latitude: poi.lat,
+      longitude: poi.lon,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    };
+    
+    setRegion(newRegion);
+    mapRef.current?.animateToRegion(newRegion, 1000);
+    
+    // Scroll list to the selected POI
+    const poiIndex = pois.findIndex(p => p.id === poi.id);
+    if (poiIndex !== -1) {
+      listRef.current?.scrollToIndex({
+        index: poiIndex,
+        animated: true,
+        viewPosition: 0.5,
+      });
+    }
+  };
+
+  const handleMarkerPress = (poi: POI) => {
+    setSelectedPoiId(poi.id);
+    
+    // Scroll list to the selected POI
+    const poiIndex = pois.findIndex(p => p.id === poi.id);
+    if (poiIndex !== -1) {
+      listRef.current?.scrollToIndex({
+        index: poiIndex,
+        animated: true,
+        viewPosition: 0.5,
+      });
+    }
+  };
 
   const getStatusColor = () => {
     switch (locationStatus) {
@@ -114,6 +227,7 @@ export default function MapScreen() {
       {/* Map Container */}
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           style={styles.map}
           region={region}
           showsUserLocation={true}
@@ -122,6 +236,25 @@ export default function MapScreen() {
           showsScale={true}
           mapType="standard"
           onRegionChangeComplete={(newRegion) => setRegion(newRegion)}
+        >
+          {/* POI Markers */}
+          {pois.map((poi) => (
+            <PoiMarker
+              key={poi.id}
+              poi={poi}
+              onPress={handleMarkerPress}
+              isSelected={selectedPoiId === poi.id}
+            />
+          ))}
+        </MapView>
+        
+        {/* Search Bar */}
+        <SearchBar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isSearching={isSearching}
+          searchError={searchError}
+          onSubmit={handleSearchSubmit}
         />
         
         {/* Floating Action Button */}
@@ -129,18 +262,28 @@ export default function MapScreen() {
           style={styles.fab}
           onPress={() => {
             if (userLocation) {
-              setRegion({
+              const newRegion = {
                 latitude: userLocation.latitude,
                 longitude: userLocation.longitude,
                 latitudeDelta: 0.0922,
                 longitudeDelta: 0.0421,
-              });
+              };
+              setRegion(newRegion);
+              mapRef.current?.animateToRegion(newRegion, 1000);
             }
           }}
         >
           <Ionicons name="locate" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      {/* POI List */}
+      <PoiList
+        pois={pois}
+        selectedPoiId={selectedPoiId}
+        onPoiPress={handlePoiPress}
+        listRef={listRef}
+      />
     </SafeAreaView>
   );
 }

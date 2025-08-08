@@ -1,50 +1,229 @@
-# Welcome to your Expo app 👋
+# Pinpoint - Interactive Map App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern, interactive map application built with Expo React Native and TypeScript. Pinpoint provides real-time location tracking with a beautiful, modern UI.
 
-## Get started
+## 🚀 Features
 
-1. Install dependencies
+### Core Functionality
 
-   ```bash
-   npm install
-   ```
+- **Interactive Map**: Full-screen interactive map using `react-native-maps`
+- **Location Tracking**: Real-time user location with blue dot indicator
+- **Permission Handling**: Automatic location permission requests with user-friendly alerts
+- **Fallback Location**: Defaults to London if location is unavailable
+- **Cross-Platform**: Works seamlessly on iOS and Android
 
-2. Start the app
+### Modern UI/UX
 
-   ```bash
-   npx expo start
-   ```
+- **Dark Theme**: Modern dark interface for better battery life and aesthetics
+- **Status Indicators**: Real-time location status with color-coded badges
+- **Floating Action Button**: Quick return to user's current location
+- **Professional Design**: Modern shadows, typography, and spacing
+- **Safe Area Support**: Proper handling of device safe areas
 
-In the output, you'll find options to open the app in a
+### Location Features
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **High Accuracy**: Uses high-accuracy location services
+- **Permission Management**: Graceful handling of permission denials
+- **Error Handling**: Comprehensive error handling with user feedback
+- **Location Status**: Visual indicators for loading, active, denied, and error states
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 📱 Screenshots
 
-## Get a fresh project
+The app features:
 
-When you're ready, run:
+- Modern dark header with app title and status indicator
+- Full-screen interactive map
+- Floating action button for location return
+- Real-time location status updates
+
+## 🛠️ Technology Stack
+
+- **Framework**: Expo React Native
+- **Language**: TypeScript
+- **Maps**: react-native-maps
+- **Location**: expo-location
+- **Icons**: @expo/vector-icons (Ionicons)
+- **Navigation**: expo-router
+- **Safe Areas**: react-native-safe-area-context
+
+## 📋 Prerequisites
+
+- Node.js (v16 or higher)
+- Expo CLI
+- iOS Simulator or Android Emulator (optional)
+- Expo Go app for testing
+
+## 🚀 Installation & Setup
+
+### 1. Clone the Repository
 
 ```bash
-npm run reset-project
+git clone <repository-url>
+cd pinpoint
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Install Dependencies
 
-## Learn more
+```bash
+npm install
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### 3. Start the Development Server
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npx expo start
+```
 
-## Join the community
+### 4. Run on Device
 
-Join our community of developers creating universal apps.
+- Install Expo Go on your mobile device
+- Scan the QR code from the terminal
+- Grant location permissions when prompted
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 📁 Project Structure
+
+```
+pinpoint/
+├── app/
+│   ├── (tabs)/
+│   │   └── index.tsx          # Main map screen
+│   ├── _layout.tsx            # Root layout
+│   └── +not-found.tsx        # 404 page
+├── components/                # Reusable components
+├── constants/                 # App constants
+├── hooks/                     # Custom hooks
+├── assets/                    # Images and fonts
+├── app.json                   # Expo configuration
+└── package.json              # Dependencies
+```
+
+## 🔧 Configuration
+
+### Location Permissions
+
+The app is configured with proper location permissions:
+
+**iOS** (`app.json`):
+
+```json
+"infoPlist": {
+  "NSLocationWhenInUseUsageDescription": "This app needs access to location to show your current position on the map."
+}
+```
+
+**Android** (`app.json`):
+
+```json
+"permissions": [
+  "ACCESS_FINE_LOCATION",
+  "ACCESS_COARSE_LOCATION"
+]
+```
+
+### Dependencies
+
+Key dependencies include:
+
+- `react-native-maps@1.7.1` - Interactive maps
+- `expo-location` - Location services
+- `@expo/vector-icons` - Icon library
+- `react-native-safe-area-context` - Safe area handling
+
+## 🎯 Current Implementation
+
+### Map Screen (`app/(tabs)/index.tsx`)
+
+- **Location Permission Request**: Automatically requests foreground location permissions
+- **User Location Display**: Shows user's location as a blue dot
+- **Status Management**: Tracks location status (loading, granted, denied, error)
+- **Modern Header**: App title with map icon and status indicator
+- **Floating Action Button**: Returns to user's current location
+- **Error Handling**: Graceful error handling with user alerts
+
+### UI Components
+
+- **Status Indicator**: Color-coded badges showing location status
+- **Header**: Modern dark header with app branding
+- **Map Container**: Full-screen map with proper styling
+- **FAB**: Floating action button for quick location access
+
+### State Management
+
+- **Location State**: Tracks current user location coordinates
+- **Region State**: Manages map view region and zoom level
+- **Status State**: Tracks location permission and service status
+
+## 🔄 Development Workflow
+
+### Adding New Features
+
+1. Create new components in the `components/` directory
+2. Add new screens in the `app/` directory
+3. Update navigation in `app/_layout.tsx`
+4. Test on both iOS and Android
+
+### Styling Guidelines
+
+- Use the dark theme color palette
+- Implement proper shadows and elevation
+- Follow modern spacing and typography
+- Ensure accessibility compliance
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Location Permission Denied**
+
+- The app will show London as default location
+- User can grant permissions in device settings
+
+**Map Not Loading**
+
+- Ensure internet connection for map tiles
+- Check if `react-native-maps` is properly installed
+
+**Build Errors**
+
+- Clear Metro cache: `npx expo start --clear`
+- Reinstall dependencies: `npm install`
+
+## 📈 Future Enhancements
+
+### Planned Features
+
+- [ ] Custom map markers
+- [ ] Route planning and navigation
+- [ ] Location history
+- [ ] Offline map support
+- [ ] Search functionality
+- [ ] Multiple map styles
+- [ ] Location sharing
+- [ ] Geofencing capabilities
+
+### UI Improvements
+
+- [ ] Animated transitions
+- [ ] Custom map overlays
+- [ ] Enhanced status indicators
+- [ ] Accessibility improvements
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test on both iOS and Android
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 📞 Support
+
+For support or questions, please open an issue in the repository.
+
+---
+
+**Built with ❤️ using Expo React Native**
