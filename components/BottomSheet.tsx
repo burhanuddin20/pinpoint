@@ -26,13 +26,13 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 	const dragY = useRef(new Animated.Value(0)).current;
 	const panRef = useRef(null);
 
-	console.log(`🚀 BottomSheet initialized:`);
-	console.log(`   - expanded prop: ${expanded}`);
-	console.log(`   - currentSnapPoint: ${currentSnapPoint}`);
-	console.log(`   - EXPANDED_Y: ${EXPANDED_Y}`);
-	console.log(`   - HALFWAY_Y: ${HALFWAY_Y}`);
-	console.log(`   - COLLAPSED_Y: ${COLLAPSED_Y}`);
-	console.log(`   - initial snapY: ${expanded ? EXPANDED_Y : COLLAPSED_Y}`);
+	// console.log(`🚀 BottomSheet initialized:`);
+	// console.log(`   - expanded prop: ${expanded}`);
+	// console.log(`   - currentSnapPoint: ${currentSnapPoint}`);
+	// console.log(`   - EXPANDED_Y: ${EXPANDED_Y}`);
+	// console.log(`   - HALFWAY_Y: ${HALFWAY_Y}`);
+	// console.log(`   - COLLAPSED_Y: ${COLLAPSED_Y}`);
+	// console.log(`   - initial snapY: ${expanded ? EXPANDED_Y : COLLAPSED_Y}`);
 
 	// Combine snap and drag with clamped range for natural elasticity
 	const combinedY = Animated.add(snapY, dragY);
@@ -57,7 +57,7 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 				break;
 		}
 		
-		console.log(`🎯 SNAPPING: ${currentSnapPoint} → ${snapPoint}`);
+		// console.log(`🎯 SNAPPING: ${currentSnapPoint} → ${snapPoint}`);
 		
 		Animated.spring(snapY, {
 			toValue: targetY,
@@ -95,7 +95,7 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 			const hasMovedUp = translationY < -50;
 			const hasMovedDown = translationY > 50;
 			
-			console.log(`📊 GESTURE: velocity=${velocityY.toFixed(0)}, translation=${translationY.toFixed(0)}, current=${currentSnapPoint}`);
+			// console.log(`📊 GESTURE: velocity=${velocityY.toFixed(0)}, translation=${translationY.toFixed(0)}, current=${currentSnapPoint}`);
 			
 			// Lower velocity threshold for better responsiveness
 			if (velocityY < -200 || hasMovedUp) {
@@ -107,7 +107,7 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 				} else {
 					targetSnapPoint = 'expanded';
 				}
-				console.log(`⬆️  UP: ${currentSnapPoint} → ${targetSnapPoint}`);
+				// console.log(`⬆️  UP: ${currentSnapPoint} → ${targetSnapPoint}`);
 			} else if (velocityY > 200 || hasMovedDown) {
 				// Swiping down - go to previous state
 				if (currentSnapPoint === 'expanded') {
@@ -117,7 +117,7 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 				} else {
 					targetSnapPoint = 'collapsed';
 				}
-				console.log(`⬇️  DOWN: ${currentSnapPoint} → ${targetSnapPoint}`);
+				// console.log(`⬇️  DOWN: ${currentSnapPoint} → ${targetSnapPoint}`);
 			} else {
 				// Low velocity - snap based on position with better thresholds
 				if (currentY < HALFWAY_Y * 0.8) {
@@ -127,7 +127,7 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 				} else {
 					targetSnapPoint = 'collapsed';
 				}
-				console.log(`📍 POSITION: ${currentSnapPoint} → ${targetSnapPoint}`);
+				// console.log(`📍 POSITION: ${currentSnapPoint} → ${targetSnapPoint}`);
 			}
 			
 			// Snap to the target position
@@ -147,26 +147,6 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 		}
 	};
 
-	// Remove the problematic useEffect that was overriding gesture state
-	// React.useEffect(() => {
-	// 	console.log(`🔄 useEffect triggered - expanded: ${expanded}, isDragging: ${isDragging}, currentSnapPoint: ${currentSnapPoint}`);
-	// 	
-	// 	if (!isDragging) {
-	// 		// Only update if we're not in the middle of a gesture
-	// 		// and if the expanded prop actually matches our current state
-	// 		if (expanded && currentSnapPoint !== 'expanded') {
-	// 			console.log(`🔄 useEffect: forcing to expanded`);
-	// 			snapToPosition('expanded');
-	// 		} else if (!expanded && currentSnapPoint === 'expanded') {
-	// 			console.log(`🔄 useEffect: forcing to collapsed`);
-	// 			snapToPosition('collapsed');
-	// 		} else {
-	// 			console.log(`🔄 useEffect: no change needed`);
-	// 		}
-	// 	} else {
-	// 			console.log(`🔄 useEffect: ignoring (dragging in progress)`);
-	// 	}
-	// }, [expanded, isDragging]);
 
 	return (
 		<View style={StyleSheet.absoluteFill} pointerEvents="box-none">

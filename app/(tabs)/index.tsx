@@ -264,19 +264,19 @@ export default function MapScreen() {
       <BottomSheet
         expanded={isExpanded}
         onSnapExpanded={() => {
-          console.log(`🎯 MAIN SCREEN: onSnapExpanded called`);
+          // console.log(`🎯 MAIN SCREEN: onSnapExpanded called`);
           setIsExpanded(true);
           setIsHalfway(false);
           fitAllMarkers();
         }}
         onSnapCollapsed={() => {
-          console.log(`🎯 MAIN SCREEN: onSnapCollapsed called`);
+          // console.log(`🎯 MAIN SCREEN: onSnapCollapsed called`);
           setIsExpanded(false);
           setIsHalfway(false);
           zoomToActive();
         }}
         onSnapHalfway={() => {
-          console.log(`🎯 MAIN SCREEN: onSnapHalfway called`);
+          // console.log(`🎯 MAIN SCREEN: onSnapHalfway called`);
           setIsExpanded(false);
           setIsHalfway(true);
           zoomToActive();
