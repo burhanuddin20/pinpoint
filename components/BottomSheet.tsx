@@ -183,7 +183,7 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 								{currentSnapPoint === 'expanded' ? 'EXPANDED' : currentSnapPoint === 'halfway' ? 'HALFWAY' : 'COLLAPSED'}
 							</Text>
 						</View>
-						<View style={[styles.content, { minHeight: COLLAPSED_VISIBLE_HEIGHT }]}>
+						<View style={[styles.content, { minHeight: COLLAPSED_VISIBLE_HEIGHT, flex: 1 }]}>
 							{children}
 						</View>
 					</Animated.View>

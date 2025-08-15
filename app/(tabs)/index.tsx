@@ -318,8 +318,9 @@ export default function MapScreen() {
                   renderItem={renderPoiItem}
                   keyExtractor={(item) => item.id}
                   showsVerticalScrollIndicator={true}
-                  contentContainerStyle={styles.listContent}
+                  contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
                   style={styles.list}
+                  scrollEnabled={true}
                 />
               </>
             ) : isHalfway ? (
@@ -341,9 +342,10 @@ export default function MapScreen() {
                   renderItem={renderPoiItem}
                   keyExtractor={(item) => item.id}
                   showsVerticalScrollIndicator={true}
-                  contentContainerStyle={styles.listContent}
+                  contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
                   style={styles.halfwayList}
                   onScrollToIndexFailed={() => {}}
+                  scrollEnabled={true}
                 />
               </View>
             ) : (
@@ -379,8 +381,17 @@ const styles = StyleSheet.create({
   },
   map: { flex: 1 },
   fab: { position: 'absolute', bottom: 30, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#2196F3', justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4.65 },
-  listContent: { padding: 10, flexGrow: 1, paddingBottom: 20 },
-  list: { flex: 1, minHeight: 0 },
+  listContent: { 
+    padding: 10, 
+    flexGrow: 1, 
+    paddingBottom: 20,
+    minHeight: '100%',
+  },
+  list: { 
+    flex: 1, 
+    minHeight: 0,
+    height: '100%',
+  },
   poiCard: { backgroundColor: '#fff', borderRadius: 10, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#e0e0e0', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   selectedPoiCard: { borderColor: '#2196F3', borderWidth: 2, backgroundColor: '#f8f9ff' },
   poiHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
@@ -413,10 +424,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', 
     alignItems: 'center', 
     paddingHorizontal: 16, 
-    paddingVertical: 10, 
+    paddingVertical: 8, 
     backgroundColor: '#fff', 
     borderBottomWidth: 1, 
-    borderBottomColor: '#e0e0e0' 
+    borderBottomColor: '#e0e0e0',
+    minHeight: 40,
   },
   listHeaderTitle: { 
     fontSize: 16, 
@@ -434,9 +446,11 @@ const styles = StyleSheet.create({
   halfwayContent: { 
     flex: 1,
     backgroundColor: '#fff',
+    height: '100%',
   },
   halfwayList: { 
     flex: 1,
     minHeight: 0,
+    height: '100%',
   },
 });
