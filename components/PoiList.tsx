@@ -1,17 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { POI } from '../data/pois';
+import type { Poi } from '../services/places';
 
 interface PoiListProps {
-  pois: POI[];
+  pois: Poi[];
   selectedPoiId: string | null;
-  onPoiPress: (poi: POI) => void;
-  listRef: React.RefObject<FlatList<POI>>;
+  onPoiPress: (poi: Poi) => void;
+  listRef: React.RefObject<FlatList<Poi>>;
 }
 
 export default function PoiList({ pois, selectedPoiId, onPoiPress, listRef }: PoiListProps) {
-  const renderPoiItem = ({ item, index }: { item: POI; index: number }) => {
+  const renderPoiItem = ({ item, index }: { item: Poi; index: number }) => {
     const isSelected = selectedPoiId === item.id;
     
     return (
@@ -34,16 +34,12 @@ export default function PoiList({ pois, selectedPoiId, onPoiPress, listRef }: Po
             color={isSelected ? '#2196F3' : '#666'} 
           />
         </View>
-        
-        <View style={styles.tagsContainer}>
-          {item.tags.map((tag, tagIndex) => (
-            <View key={tagIndex} style={[styles.tag, isSelected && styles.selectedTag]}>
-              <Text style={[styles.tagText, isSelected && styles.selectedTagText]}>
-                {tag}
-              </Text>
-            </View>
-          ))}
-        </View>
+        {!!item.formattedAddress && (
+          <Text style={{ color: '#666' }} numberOfLines={2}>{item.formattedAddress}</Text>
+        )}
+        {typeof item.rating === 'number' && (
+          <Text style={{ marginTop: 6, color: '#444' }}>⭐ {item.rating.toFixed(1)}{typeof item.userRatingCount === 'number' ? ` (${item.userRatingCount})` : ''}</Text>
+        )}
       </TouchableOpacity>
     );
   };
@@ -147,27 +143,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 2,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tag: {
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  selectedTag: {
-    backgroundColor: '#E3F2FD',
-  },
-  tagText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
-  },
-  selectedTagText: {
-    color: '#1976D2',
   },
 }); 

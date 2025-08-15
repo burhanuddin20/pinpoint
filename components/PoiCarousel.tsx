@@ -1,6 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
-import { Animated, FlatList, ListRenderItemInfo, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import type { Poi } from '../screens/mockData';
+import { Animated, FlatList, Linking, ListRenderItemInfo, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { Poi } from '../services/places';
 
 export interface PoiCarouselHandle {
   scrollToIndex: (index: number, animated?: boolean) => void;
@@ -36,24 +36,45 @@ const PoiCarousel = forwardRef<PoiCarouselHandle, Props>(({ data, activeIndex, o
 
   const keyExtractor = (item: Poi) => item.id;
 
+  const openDirections = (p: Poi) => {
+    const apple = `maps://?q=${encodeURIComponent(p.name)}&ll=${p.lat},${p.lon}`;
+    const gmaps = `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`;
+    const url = Platform.OS === 'ios' ? apple : gmaps;
+    Linking.openURL(url);
+  };
+
+  const openPhone = (p: Poi) => {
+    if (!p.phone) return;
+    Linking.openURL(`tel:${p.phone}`);
+  };
+
+  const openWebsite = (p: Poi) => {
+    if (!p.website) return;
+    Linking.openURL(p.website);
+  };
+
   const renderItem = ({ item, index }: ListRenderItemInfo<Poi>) => {
     const isActive = index === activeIndex;
     return (
       <Animated.View style={[styles.cardContainer, { width: CARD_WIDTH, marginRight: SPACING, transform: [{ scale: isActive ? 1 : 0.96 }] }]}> 
-        <TouchableOpacity activeOpacity={0.85} style={styles.card}>
+        <View style={styles.card}>
           <Text style={styles.cardTitle}>{item.name}</Text>
-          {!!item.tags && (
-            <View style={styles.tagsRow}>
-              {item.tags.map((t) => (
-                <View key={t} style={styles.tag}><Text style={styles.tagText}>{t}</Text></View>
-              ))}
-            </View>
-          )}
-          {!!item.summary && <Text style={styles.summary} numberOfLines={2}>{item.summary}</Text>}
+          {!!item.formattedAddress && <Text style={styles.summary} numberOfLines={2}>{item.formattedAddress}</Text>}
           {typeof item.rating === 'number' && (
-            <Text style={styles.rating}>⭐ {item.rating.toFixed(1)}</Text>
+            <Text style={styles.rating}>⭐ {item.rating.toFixed(1)}{typeof item.userRatingCount === 'number' ? ` (${item.userRatingCount})` : ''}</Text>
           )}
-        </TouchableOpacity>
+          <View style={styles.ctaRow}>
+            <TouchableOpacity style={styles.ctaBtn} onPress={() => openDirections(item)}>
+              <Text style={styles.ctaText}>Directions</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.ctaBtn, !item.phone && styles.ctaDisabled]} disabled={!item.phone} onPress={() => openPhone(item)}>
+              <Text style={styles.ctaText}>Call</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.ctaBtn, !item.website && styles.ctaDisabled]} disabled={!item.website} onPress={() => openWebsite(item)}>
+              <Text style={styles.ctaText}>Website</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Animated.View>
     );
   };
@@ -93,7 +114,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   cardContainer: {
-    height: 140,
+    height: 160,
   },
   card: {
     flex: 1,
@@ -113,24 +134,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111',
   },
-  tagsRow: {
-    flexDirection: 'row',
-    marginTop: 6,
-    flexWrap: 'wrap',
-  },
-  tag: {
-    backgroundColor: '#111',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: 6,
-    marginBottom: 6,
-  },
-  tagText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
   summary: {
     marginTop: 6,
     color: '#555',
@@ -138,5 +141,24 @@ const styles = StyleSheet.create({
   rating: {
     marginTop: 8,
     fontWeight: '600',
+  },
+  ctaRow: {
+    flexDirection: 'row',
+    marginTop: 10,
+    gap: 8,
+  },
+  ctaBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#111',
+    borderRadius: 8,
+  },
+  ctaDisabled: {
+    backgroundColor: '#777',
+  },
+  ctaText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
   },
 });

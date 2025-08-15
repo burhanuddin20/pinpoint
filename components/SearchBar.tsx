@@ -23,7 +23,7 @@ export default function SearchBar({
         <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search for a location..."
+          placeholder="Search coffee or places near me..."
           placeholderTextColor="#999"
           value={searchQuery}
           onChangeText={setSearchQuery}
