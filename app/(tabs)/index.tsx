@@ -316,7 +316,7 @@ export default function MapScreen() {
                   renderItem={renderPoiItem}
                   keyExtractor={(item) => item.id}
                   showsVerticalScrollIndicator={true}
-                  contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
+                  contentContainerStyle={[styles.listContent, { paddingBottom: 200 }]}
                   style={styles.list}
                   scrollEnabled={true}
                 />
@@ -338,7 +338,7 @@ export default function MapScreen() {
                   renderItem={renderPoiItem}
                   keyExtractor={(item) => item.id}
                   showsVerticalScrollIndicator={true}
-                  contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
+                  contentContainerStyle={[styles.listContent, { paddingBottom: 500 }]}
                   style={styles.halfwayList}
                   onScrollToIndexFailed={() => {}}
                   scrollEnabled={true}
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   listContent: { 
     padding: 10, 
     flexGrow: 1, 
-    paddingBottom: 20,
+    paddingBottom: 100, // Increased padding to ensure last POI is visible
     minHeight: '100%',
   },
   list: { 
