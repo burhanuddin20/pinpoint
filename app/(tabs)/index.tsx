@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Linking, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Linking, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View, Animated } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '../../components/BottomSheet';
@@ -34,6 +34,15 @@ export default function MapScreen() {
   
   const mapRef = useRef<MapView>(null);
   const listRef = useRef<FlatList<Poi>>(null);
+  const navTranslateY = useRef(new Animated.Value(-80)).current;
+
+  useEffect(() => {
+    Animated.timing(navTranslateY, {
+      toValue: isExpanded ? 0 : -80,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [isExpanded, navTranslateY]);
 
   useEffect(() => {
     (async () => {
@@ -241,7 +250,7 @@ export default function MapScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, { transform: [{ translateY: navTranslateY }] }]}>
         <View style={styles.headerContent}>
           <View style={styles.titleContainer}>
             <Ionicons name="map" size={20} color="#fff" />
@@ -252,7 +261,7 @@ export default function MapScreen() {
             <Text style={styles.statusText}>{getStatusText()}</Text>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
       <View style={styles.mapContainer}>
         <MapView
@@ -277,6 +286,7 @@ export default function MapScreen() {
           isSearching={isSearching}
           searchError={searchError}
           onSubmit={handleSubmit}
+          topOffset={isExpanded ? 88 : 20}
         />
 
         <TouchableOpacity 
@@ -339,7 +349,7 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a1a' },
-  header: { backgroundColor: '#1a1a1a', paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#333' },
+  header: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#1a1a1a', paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#333', zIndex: 12 },
   headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   titleContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
