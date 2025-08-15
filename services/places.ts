@@ -27,43 +27,34 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 export async function searchPlaces({ query, lat, lon }: { query: string; lat: number; lon: number }): Promise<Poi[]> {
   const url = `${BASE_URL}/places/text?query=${encodeURIComponent(query)}&lat=${lat}&lon=${lon}`;
-  console.log('🔍 Searching places:', url);
   
   try {
-    const res = await fetch(url, {
+    const response = await fetch(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
-    console.log('📡 Response status:', res.status);
     
-    const data = await handleResponse<Poi[]>(res);
-    console.log('✅ Search results:', data.length, 'places found');
-    return data;
+    const data = await handleResponse<Poi[]>(response);
+    return data.slice(0, 5); // Limit to 5 results for testing
   } catch (error) {
-    console.error('❌ Search failed:', error);
+    console.error('Error searching places:', error);
     throw error;
   }
 }
 
-export async function getNearby({ lat, lon, type = 'cafe', radius = 1500, max = 12 }: { lat: number; lon: number; type?: string; radius?: number; max?: number; }): Promise<Poi[]> {
-  const params = new URLSearchParams({ 
-    lat: String(lat), 
-    lon: String(lon), 
-    type, 
-    radius: String(radius) 
-  });
-  const url = `${BASE_URL}/places/nearby?${params.toString()}`;
-  console.log('📍 Getting nearby places:', url);
+export async function getNearby({ lat, lon, type = 'cafe', radius = 1500 }: { lat: number; lon: number; type?: string; radius?: number }): Promise<Poi[]> {
+  const url = `${BASE_URL}/places/nearby?lat=${lat}&lon=${lon}&type=${type}&radius=${radius}`;
   
   try {
-    const res = await fetch(url);
-    console.log('📡 Response status:', res.status);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
     
-    const data = await handleResponse<Poi[]>(res);
-    console.log('✅ Nearby results:', data.length, 'places found');
-    return data;
+    const data = await handleResponse<Poi[]>(response);
+    return data.slice(0, 5); // Limit to 5 results for testing
   } catch (error) {
-    console.error('❌ Nearby search failed:', error);
+    console.error('Error fetching nearby places:', error);
     throw error;
   }
 }
