@@ -300,11 +300,11 @@ export default function MapScreen() {
         ) : (
           <>
             {isExpanded ? (
-              // Full expanded content
+              // Expanded state - show full list
               <>
-                <View style={styles.listHeader}>
-                  <Text style={styles.listHeaderTitle}>
-                    Found {pois.length} places
+                <View style={styles.collapsedContent}>
+                  <Text style={styles.collapsedCount}>
+                    {pois.length} places
                   </Text>
                   {searchQuery.length > 0 && (
                     <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
@@ -326,9 +326,9 @@ export default function MapScreen() {
             ) : isHalfway ? (
               // Halfway state - show compact list with same POI cards
               <View style={styles.halfwayContent}>
-                <View style={styles.listHeader}>
-                  <Text style={styles.listHeaderTitle}>
-                    Found {pois.length} places
+                <View style={styles.collapsedContent}>
+                  <Text style={styles.collapsedCount}>
+                    {pois.length} places
                   </Text>
                   {searchQuery.length > 0 && (
                     <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
@@ -353,6 +353,11 @@ export default function MapScreen() {
               <View style={styles.collapsedContent}>
                 <Text style={styles.collapsedCount}>{pois.length} places</Text>
                 <Text style={styles.collapsedHelp}>Swipe up to see more</Text>
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
+                    <Text style={styles.secondaryBtnText}>Clear</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </>

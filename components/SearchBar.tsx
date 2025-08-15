@@ -99,10 +99,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#000',
     marginBottom: 2,
+    textAlign: 'center',
   },
   searchSubtitle: {
     fontSize: 14,
     color: '#666',
+    textAlign: 'center',
   },
   filterButton: {
     width: 40,
