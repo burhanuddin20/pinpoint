@@ -95,7 +95,7 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 						<View style={styles.grabberContainer}>
 							<View style={styles.grabber} />
 						</View>
-						<View style={[styles.content, { minHeight: COLLAPSED_VISIBLE_HEIGHT }]}>
+						<View style={[styles.content, { minHeight: COLLAPSED_VISIBLE_HEIGHT, flex: 1 }]}>
 							{children}
 						</View>
 					</Animated.View>
@@ -112,7 +112,6 @@ const styles = StyleSheet.create({
 		left: 0,
 		right: 0,
 		height: windowHeight,
-		justifyContent: 'flex-end',
 		backgroundColor: '#fff',
 		borderTopLeftRadius: 16,
 		borderTopRightRadius: 16,

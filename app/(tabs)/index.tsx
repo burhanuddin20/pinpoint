@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Linking, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View, Animated } from 'react-native';
+import { Alert, Animated, FlatList, Linking, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '../../components/BottomSheet';
@@ -35,6 +35,11 @@ export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
   const listRef = useRef<FlatList<Poi>>(null);
   const navTranslateY = useRef(new Animated.Value(-80)).current;
+
+  // Debug POI state changes
+  useEffect(() => {
+    // Removed debugging logs
+  }, [pois, isSearching, selectedPoiId]);
 
   useEffect(() => {
     Animated.timing(navTranslateY, {
@@ -175,7 +180,10 @@ export default function MapScreen() {
   const renderPoiItem = ({ item, index }: { item: Poi; index: number }) => {
     const isSelected = selectedPoiId === item.id;
     return (
-      <TouchableOpacity style={[styles.poiCard, isSelected && styles.selectedPoiCard]} onPress={() => handlePoiPress(item)}>
+      <TouchableOpacity
+        style={[styles.poiCard, isSelected && styles.selectedPoiCard]}
+        onPress={() => handlePoiPress(item)}
+      >
         <View style={styles.poiHeader}>
           <View style={styles.poiInfo}>
             <Text style={[styles.poiName, isSelected && styles.selectedPoiName]}>{item.name}</Text>
@@ -330,15 +338,17 @@ export default function MapScreen() {
           </View>
         ) : (
           <>
+            <Text style={{ padding: 16, color: '#666', textAlign: 'center' }}>
+              Found {pois.length} places
+            </Text>
             <FlatList
               ref={listRef}
               data={pois}
               renderItem={renderPoiItem}
               keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.listContent}
               style={styles.list}
-              getItemLayout={(_, index) => ({ length: 100, offset: index * 100, index })}
             />
           </>
         )}
@@ -358,8 +368,8 @@ const styles = StyleSheet.create({
   mapContainer: { flex: 1, position: 'relative' },
   map: { flex: 1 },
   fab: { position: 'absolute', bottom: 30, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#2196F3', justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4.65 },
-  listContent: { padding: 10 },
-  list: { flex: 1 },
+  listContent: { padding: 10, flexGrow: 1, paddingBottom: 20 },
+  list: { flex: 1, minHeight: 0 },
   poiCard: { backgroundColor: '#fff', borderRadius: 10, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#e0e0e0', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   selectedPoiCard: { borderColor: '#2196F3', borderWidth: 2, backgroundColor: '#f8f9ff' },
   poiHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
