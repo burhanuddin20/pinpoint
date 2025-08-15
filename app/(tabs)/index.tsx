@@ -25,7 +25,6 @@ export default function MapScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // POI states
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
@@ -66,7 +65,19 @@ export default function MapScreen() {
         const newRegion: Region = { latitude: coords.latitude, longitude: coords.longitude, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
         setRegion(newRegion);
         mapRef.current?.animateToRegion(newRegion, 600);
-        // POI loading is now handled in the search useEffect
+        
+        // Load initial nearby places
+        setIsSearching(true);
+        setSearchError(null);
+        try {
+          const data = await getNearby({ lat: coords.latitude, lon: coords.longitude, type: 'cafe', radius: 1500, max: 12 });
+          setPois(data);
+          if (data.length > 0) setSelectedPoiId(data[0].id);
+        } catch (e: any) {
+          setSearchError(e?.message || 'Failed to load nearby places');
+        } finally {
+          setIsSearching(false);
+        }
       } catch (error) {
         console.error('Error getting location:', error);
         setLocationStatus('error');
@@ -75,56 +86,24 @@ export default function MapScreen() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (!userLocation) return;
-    
-    // Clear any existing debounce
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    
-    debounceRef.current = setTimeout(async () => {
-      const q = searchQuery.trim();
-      
-      // Don't run if we're already searching
-      if (isSearching) return;
-      
-      setIsSearching(true);
-      setSearchError(null);
-      
-      try {
-        if (q.length === 0) {
-          // Only load nearby places if we don't have any yet
-          if (pois.length === 0) {
-            const data = await getNearby({ lat: userLocation.latitude, lon: userLocation.longitude, type: 'cafe', radius: 1500, max: 12 });
-            setPois(data);
-            if (data.length > 0) setSelectedPoiId(data[0].id);
-          }
-        } else {
-          // Search for specific places
-          const data = await searchPlaces({ query: q, lat: userLocation.latitude, lon: userLocation.longitude });
-          setPois(data);
-          if (data.length > 0) setSelectedPoiId(data[0].id);
-        }
-      } catch (e: any) {
-        setSearchError(e?.message || 'Search failed');
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-    
-    return () => { 
-      if (debounceRef.current) clearTimeout(debounceRef.current); 
-    };
-  }, [searchQuery, userLocation, pois.length, isSearching]);
+  // Remove the automatic search useEffect - we'll only search on submit
+  // useEffect(() => { ... }, [searchQuery, userLocation]);
 
   const handleSubmit = async () => {
     if (!userLocation) return;
     const q = searchQuery.trim();
-    if (q.length === 0) return;
+    if (q.length === 0) {
+      // If search is empty, do nothing - keep current POIs
+      return;
+    }
+    
     setIsSearching(true);
     setSearchError(null);
+    
     try {
       const data = await searchPlaces({ query: q, lat: userLocation.latitude, lon: userLocation.longitude });
       setPois(data);
+      if (data.length > 0) setSelectedPoiId(data[0].id);
     } catch (e: any) {
       setSearchError(e?.message || 'Search failed');
     } finally {
@@ -168,12 +147,15 @@ export default function MapScreen() {
   };
 
   const searchThisArea = async () => {
+    if (!userLocation) return;
+    
     setIsSearching(true);
     setSearchError(null);
     try {
-      const data = await getNearby({ lat: region.latitude, lon: region.longitude, type: 'cafe', radius: 1500, max: 12 });
+      const data = await getNearby({ lat: userLocation.latitude, lon: userLocation.longitude, type: 'cafe', radius: 1500, max: 12 });
       setPois(data);
       if (data.length > 0) setSelectedPoiId(data[0].id);
+      setSearchQuery(''); // Clear the search query
     } catch (e: any) {
       setSearchError(e?.message || 'Failed to load places for this area');
     } finally {
