@@ -25,15 +25,19 @@ export default function MapScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // POI states
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
   const [pois, setPois] = useState<Poi[]>([]);
-  const { isExpanded, setIsExpanded } = useBottomSheet();
-  
+  const { isExpanded, setIsExpanded, isHalfway, setIsHalfway } = useBottomSheet();
+
   const mapRef = useRef<MapView>(null);
   const listRef = useRef<FlatList<Poi>>(null);
+
+  // Debug POI state changes
+  useEffect(() => {
+    // Removed debugging logs
+  }, [pois, isSearching, selectedPoiId]);
 
   useEffect(() => {
     (async () => {
@@ -52,13 +56,14 @@ export default function MapScreen() {
         const newRegion: Region = { latitude: coords.latitude, longitude: coords.longitude, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
         setRegion(newRegion);
         mapRef.current?.animateToRegion(newRegion, 600);
-        // initial nearby cafes
+        
+        // Load initial nearby places
         setIsSearching(true);
         setSearchError(null);
         try {
-          const data = await getNearby({ lat: coords.latitude, lon: coords.longitude, type: 'cafe', radius: 1500, max: 12 });
+          const data = await getNearby({ lat: coords.latitude, lon: coords.longitude, type: 'cafe', radius: 1500 });
           setPois(data);
-          setSelectedPoiId(data[0]?.id ?? null);
+          if (data.length > 0) setSelectedPoiId(data[0].id);
         } catch (e: any) {
           setSearchError(e?.message || 'Failed to load nearby places');
         } finally {
@@ -72,39 +77,24 @@ export default function MapScreen() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (!userLocation) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      const q = searchQuery.trim();
-      setIsSearching(true);
-      setSearchError(null);
-      try {
-        if (q.length === 0) {
-          const data = await getNearby({ lat: userLocation.latitude, lon: userLocation.longitude, type: 'cafe', radius: 1500, max: 12 });
-          setPois(data);
-        } else {
-          const data = await searchPlaces({ query: q, lat: userLocation.latitude, lon: userLocation.longitude });
-          setPois(data);
-        }
-      } catch (e: any) {
-        setSearchError(e?.message || 'Search failed');
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [searchQuery, userLocation]);
+  // Remove the automatic search useEffect - we'll only search on submit
+  // useEffect(() => { ... }, [searchQuery, userLocation]);
 
   const handleSubmit = async () => {
     if (!userLocation) return;
     const q = searchQuery.trim();
-    if (q.length === 0) return;
+    if (q.length === 0) {
+      // If search is empty, do nothing - keep current POIs
+      return;
+    }
+    
     setIsSearching(true);
     setSearchError(null);
+    
     try {
       const data = await searchPlaces({ query: q, lat: userLocation.latitude, lon: userLocation.longitude });
       setPois(data);
+      if (data.length > 0) setSelectedPoiId(data[0].id);
     } catch (e: any) {
       setSearchError(e?.message || 'Search failed');
     } finally {
@@ -147,10 +137,36 @@ export default function MapScreen() {
     mapRef.current?.animateToRegion(newRegion, 300);
   };
 
+  const clearSearch = () => {
+    setSearchQuery('');
+    // Restore initial nearby places when clearing search
+    if (userLocation) {
+      // Load initial nearby places
+      setIsSearching(true);
+      setSearchError(null);
+      try {
+        getNearby({ lat: userLocation.latitude, lon: userLocation.longitude, type: 'cafe', radius: 1500 }).then((data) => {
+          setPois(data);
+          if (data.length > 0) setSelectedPoiId(data[0].id);
+        }).catch((e: any) => {
+          setSearchError(e?.message || 'Failed to load nearby places');
+        }).finally(() => {
+          setIsSearching(false);
+        });
+      } catch (error) {
+        setSearchError('Failed to load nearby places');
+        setIsSearching(false);
+      }
+    }
+  };
+
   const renderPoiItem = ({ item, index }: { item: Poi; index: number }) => {
     const isSelected = selectedPoiId === item.id;
     return (
-      <TouchableOpacity style={[styles.poiCard, isSelected && styles.selectedPoiCard]} onPress={() => handlePoiPress(item)}>
+      <TouchableOpacity
+        style={[styles.poiCard, isSelected && styles.selectedPoiCard]}
+        onPress={() => handlePoiPress(item)}
+      >
         <View style={styles.poiHeader}>
           <View style={styles.poiInfo}>
             <Text style={[styles.poiName, isSelected && styles.selectedPoiName]}>{item.name}</Text>
@@ -194,48 +210,24 @@ export default function MapScreen() {
     );
   };
 
-  const getStatusColor = () => {
-    switch (locationStatus) {
-      case 'granted': return '#4CAF50';
-      case 'denied': return '#F44336';
-      case 'error': return '#FF9800';
-      default: return '#2196F3';
-    }
-  };
-
-  const getStatusText = () => {
-    switch (locationStatus) {
-      case 'granted': return 'Location Active';
-      case 'denied': return 'Location Denied';
-      case 'error': return 'Location Error';
-      default: return 'Getting Location...';
-    }
-  };
-
-  const getStatusIcon = () => {
-    switch (locationStatus) {
-      case 'loading': return <Ionicons name="time" size={12} color="#fff" />;
-      case 'granted': return <Ionicons name="checkmark-circle" size={12} color="#fff" />;
-      case 'denied': return <Ionicons name="close-circle" size={12} color="#fff" />;
-      case 'error': return <Ionicons name="warning" size={12} color="#fff" />;
-      default: return <Ionicons name="time" size={12} color="#fff" />;
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.titleContainer}>
-            <Ionicons name="map" size={20} color="#fff" />
-            <Text style={styles.title}>Pinpoint</Text>
-          </View>
-          <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]}>
-            {getStatusIcon()}
-            <Text style={styles.statusText}>{getStatusText()}</Text>
-          </View>
-        </View>
+        {/* Clean header with just the search bar */}
+        <SearchBar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isSearching={isSearching}
+          searchError={searchError}
+          onSubmit={handleSubmit}
+          onBackPress={() => {
+            if (searchQuery.length > 0) {
+              setSearchQuery('');
+            }
+          }}
+          poisCount={pois.length}
+        />
       </View>
 
       <View style={styles.mapContainer}>
@@ -255,14 +247,6 @@ export default function MapScreen() {
           ))}
         </MapView>
 
-        <SearchBar
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          isSearching={isSearching}
-          searchError={searchError}
-          onSubmit={handleSubmit}
-        />
-
         <TouchableOpacity 
           style={styles.fab}
           onPress={() => {
@@ -279,29 +263,99 @@ export default function MapScreen() {
 
       <BottomSheet
         expanded={isExpanded}
-        onSnapExpanded={() => { setIsExpanded(true); fitAllMarkers(); }}
-        onSnapCollapsed={() => { setIsExpanded(false); zoomToActive(); }}
+        onSnapExpanded={() => {
+          // console.log(`🎯 MAIN SCREEN: onSnapExpanded called`);
+          setIsExpanded(true);
+          setIsHalfway(false);
+          fitAllMarkers();
+        }}
+        onSnapCollapsed={() => {
+          // console.log(`🎯 MAIN SCREEN: onSnapCollapsed called`);
+          setIsExpanded(false);
+          setIsHalfway(false);
+          zoomToActive();
+        }}
+        onSnapHalfway={() => {
+          // console.log(`🎯 MAIN SCREEN: onSnapHalfway called`);
+          setIsExpanded(false);
+          setIsHalfway(true);
+          zoomToActive();
+        }}
       >
         {isSearching ? (
           <View style={{ padding: 16, alignItems: 'center' }}>
             <Text style={{ color: '#666' }}>Loading places…</Text>
           </View>
         ) : pois.length === 0 ? (
-          <View style={{ padding: 16, alignItems: 'center' }}>
-            <Text style={{ color: '#666' }}>No places found nearby</Text>
+          <View style={styles.emptyState}>
+            <Ionicons name="search" size={20} color="#666" />
+            <Text style={styles.emptyTitle}>No places found nearby</Text>
+            <Text style={styles.emptySubtitle}>Try searching for something or search this area.</Text>
+            {searchQuery.length > 0 && (
+              <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
+                <Text style={styles.secondaryBtnText}>Clear search</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           <>
-            <FlatList
-              ref={listRef}
-              data={pois}
-              renderItem={renderPoiItem}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-              style={styles.list}
-              getItemLayout={(_, index) => ({ length: 100, offset: index * 100, index })}
-            />
+            {isExpanded ? (
+              // Expanded state - show full list
+              <>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.collapsedCount}>
+                    {pois.length} places
+                  </Text>
+                  <TouchableOpacity style={styles.hotButton} onPress={clearSearch}>
+                    <Text style={styles.hotButtonText}>Hot right now</Text>
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  ref={listRef}
+                  data={pois}
+                  renderItem={renderPoiItem}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={true}
+                  contentContainerStyle={[styles.listContent, { paddingBottom: 200 }]}
+                  style={styles.list}
+                  scrollEnabled={true}
+                />
+              </>
+            ) : isHalfway ? (
+              // Halfway state - show compact list with same POI cards
+              <View style={styles.halfwayContent}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.collapsedCount}>
+                    {pois.length} places
+                  </Text>
+                  <TouchableOpacity style={styles.hotButton} onPress={clearSearch}>
+                    <Text style={styles.hotButtonText}>Hot right now</Text>
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  ref={listRef}
+                  data={pois}
+                  renderItem={renderPoiItem}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={true}
+                  contentContainerStyle={[styles.listContent, { paddingBottom: 500 }]}
+                  style={styles.halfwayList}
+                  onScrollToIndexFailed={() => {}}
+                  scrollEnabled={true}
+                />
+              </View>
+            ) : (
+              // Collapsed state - just show count
+              <View style={styles.collapsedContent}>
+                <Text style={styles.collapsedCount}>{pois.length} places</Text>
+                <Text style={styles.collapsedHelp}>Swipe up to see more</Text>
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
+                    <Text style={styles.secondaryBtnText}>Clear</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </>
         )}
       </BottomSheet>
@@ -310,18 +364,35 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a1a' },
-  header: { backgroundColor: '#1a1a1a', paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#333' },
-  headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  titleContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-  statusIndicator: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 16, gap: 4 },
-  statusText: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  mapContainer: { flex: 1, position: 'relative' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { 
+    position: 'absolute', 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    backgroundColor: '#fff', 
+    paddingHorizontal: 20, 
+    paddingVertical: 12, 
+    paddingTop: 60, // Account for notch/dynamic island
+    zIndex: 12,
+  },
+  mapContainer: { 
+    flex: 1, 
+    position: 'relative',
+  },
   map: { flex: 1 },
   fab: { position: 'absolute', bottom: 30, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#2196F3', justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4.65 },
-  listContent: { padding: 10 },
-  list: { flex: 1 },
+  listContent: { 
+    padding: 10, 
+    flexGrow: 1, 
+    paddingBottom: 100, // Increased padding to ensure last POI is visible
+    minHeight: '100%',
+  },
+  list: { 
+    flex: 1, 
+    minHeight: 0,
+    height: '100%',
+  },
   poiCard: { backgroundColor: '#fff', borderRadius: 10, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#e0e0e0', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   selectedPoiCard: { borderColor: '#2196F3', borderWidth: 2, backgroundColor: '#f8f9ff' },
   poiHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
@@ -333,4 +404,76 @@ const styles = StyleSheet.create({
   ctaBtn: { paddingHorizontal: 10, paddingVertical: 8, backgroundColor: '#111', borderRadius: 8 },
   ctaDisabled: { backgroundColor: '#777' },
   ctaText: { color: '#fff', fontWeight: '600', fontSize: 12 },
+  emptyState: { alignItems: 'center', paddingHorizontal: 16, paddingVertical: 20 },
+  emptyTitle: { marginTop: 8, fontWeight: '600', color: '#333' },
+  emptySubtitle: { color: '#666', marginTop: 2 },
+  secondaryBtn: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d0d0d0',
+  },
+  secondaryBtnText: {
+    color: '#333',
+    fontWeight: '500',
+    fontSize: 12,
+  },
+  listHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 16, 
+    paddingVertical: 8, 
+    backgroundColor: '#fff', 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#e0e0e0',
+    minHeight: 40,
+  },
+  listHeaderTitle: { 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    color: '#333' 
+  },
+  collapsedContent: { alignItems: 'center', paddingVertical: 10 },
+  collapsedCount: { fontSize: 14, color: '#666' },
+  collapsedHelp: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  halfwayContent: { 
+    flex: 1,
+    backgroundColor: '#fff',
+    height: '100%',
+  },
+  halfwayList: { 
+    flex: 1,
+    minHeight: 0,
+    height: '100%',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    minHeight: 40,
+  },
+  hotButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  hotButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
+  },
 });

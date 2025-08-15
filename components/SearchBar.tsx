@@ -1,51 +1,58 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface SearchBarProps {
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  isSearching: boolean;
-  searchError: string | null;
-  onSubmit: () => void;
+	searchQuery: string;
+	setSearchQuery: (query: string) => void;
+	isSearching: boolean;
+	searchError: string | null;
+	onSubmit: () => void;
+	onBackPress?: () => void;
+	poisCount?: number;
 }
 
-export default function SearchBar({ 
-  searchQuery, 
-  setSearchQuery, 
-  isSearching, 
-  searchError, 
-  onSubmit 
+export default function SearchBar({
+  searchQuery,
+  setSearchQuery,
+  isSearching,
+  searchError,
+  onSubmit,
+  onBackPress,
+  poisCount = 0,
 }: SearchBarProps) {
   return (
-    <View style={styles.floatingSearchContainer}>
-      <View style={styles.searchBar}>
-        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search coffee or places near me..."
-          placeholderTextColor="#999"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={onSubmit}
-          returnKeyType="search"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {isSearching && (
-          <ActivityIndicator size="small" color="#2196F3" style={styles.searchLoading} />
-        )}
-        {searchQuery.length > 0 && !isSearching && (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={() => setSearchQuery('')}
-          >
-            <Ionicons name="close-circle" size={20} color="#666" />
+    <View style={styles.headerSearchContainer}>
+      <View style={styles.searchRow}>
+        {onBackPress && (
+          <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
         )}
+        
+        <TouchableOpacity style={styles.searchBar} onPress={() => {}}>
+          <View style={styles.searchInputContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search places..."
+              placeholderTextColor="#999"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={onSubmit}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            <Text style={styles.searchSubtitle}>
+              {searchQuery.length > 0 ? `Searching for "${searchQuery}"` : `${poisCount} places found`}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.filterButton}>
+          <Ionicons name="options" size={24} color="#000" />
+        </TouchableOpacity>
       </View>
-      
-      {/* Search Error */}
+
       {searchError && (
         <View style={styles.errorContainer}>
           <Ionicons name="warning" size={16} color="#F44336" />
@@ -57,45 +64,77 @@ export default function SearchBar({
 }
 
 const styles = StyleSheet.create({
-  floatingSearchContainer: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
-    zIndex: 10,
+  headerSearchContainer: {
+    marginTop: 12,
+    marginHorizontal: 20,
   },
-  searchBar: {
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  searchBar: {
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 25,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderWidth: 1,
     borderColor: '#e0e0e0',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  searchIcon: {
-    marginRight: 10,
+  searchInputContainer: {
+    flex: 1,
   },
   searchInput: {
-    flex: 1,
-    color: '#333',
     fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
     paddingVertical: 0,
+    textAlign: 'center',
+    marginBottom: 2,
   },
-  searchLoading: {
-    marginLeft: 10,
+  searchTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+    textAlign: 'center',
   },
-  clearButton: {
-    marginLeft: 10,
+  searchSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   errorContainer: {
     flexDirection: 'row',
