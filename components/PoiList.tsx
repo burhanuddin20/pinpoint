@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { Poi } from '../services/places';
+import SocialStrip from './SocialStrip';
 
 interface PoiListProps {
   pois: Poi[];
@@ -37,8 +38,18 @@ export default function PoiList({ pois, selectedPoiId, onPoiPress, listRef }: Po
         {!!item.formattedAddress && (
           <Text style={{ color: '#666' }} numberOfLines={2}>{item.formattedAddress}</Text>
         )}
-        {typeof item.rating === 'number' && (
-          <Text style={{ marginTop: 6, color: '#444' }}>⭐ {item.rating.toFixed(1)}{typeof item.userRatingCount === 'number' ? ` (${item.userRatingCount})` : ''}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+          {typeof item.rating === 'number' && (
+            <Text style={{ color: '#444' }}>⭐ {item.rating.toFixed(1)}{typeof item.userRatingCount === 'number' ? ` (${item.userRatingCount})` : ''}</Text>
+          )}
+          {typeof item.buzzScore === 'number' && item.buzzScore >= 3 && (
+            <View style={styles.trendingChip}>
+              <Text style={styles.trendingText}>🔥 Trending</Text>
+            </View>
+          )}
+        </View>
+        {!!item.social && item.social.length > 0 && (
+          <SocialStrip items={item.social} />
         )}
       </TouchableOpacity>
     );
@@ -143,5 +154,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 2,
+  },
+  trendingChip: {
+    marginLeft: 8,
+    backgroundColor: '#FFEFE6',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  trendingText: {
+    color: '#D35400',
+    fontWeight: '700',
+    fontSize: 12,
   },
 }); 

@@ -1,3 +1,5 @@
+export type SocialItem = { platform: 'tiktok' | 'instagram'; url: string; thumbnail?: string; author?: string };
+
 export type Poi = {
   id: string;
   name: string;
@@ -9,6 +11,8 @@ export type Poi = {
   openNow?: boolean;
   phone?: string;
   website?: string;
+  social?: SocialItem[];
+  buzzScore?: number;
 };
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001';
@@ -26,16 +30,16 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function searchPlaces({ query, lat, lon }: { query: string; lat: number; lon: number }): Promise<Poi[]> {
-  const url = `${BASE_URL}/places/text?query=${encodeURIComponent(query)}&lat=${lat}&lon=${lon}`;
+  const url = `${BASE_URL}/search`;
   
   try {
     const response = await fetch(url, {
-      method: 'GET',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, lat, lon }),
     });
-    
     const data = await handleResponse<Poi[]>(response);
-    return data.slice(0, 5); // Limit to 5 results for testing
+    return data;
   } catch (error) {
     console.error('Error searching places:', error);
     throw error;

@@ -1,6 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { Animated, FlatList, Linking, ListRenderItemInfo, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { Poi } from '../services/places';
+import SocialStrip from './SocialStrip';
 
 export interface PoiCarouselHandle {
   scrollToIndex: (index: number, animated?: boolean) => void;
@@ -60,8 +61,18 @@ const PoiCarousel = forwardRef<PoiCarouselHandle, Props>(({ data, activeIndex, o
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{item.name}</Text>
           {!!item.formattedAddress && <Text style={styles.summary} numberOfLines={2}>{item.formattedAddress}</Text>}
-          {typeof item.rating === 'number' && (
-            <Text style={styles.rating}>⭐ {item.rating.toFixed(1)}{typeof item.userRatingCount === 'number' ? ` (${item.userRatingCount})` : ''}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+            {typeof item.rating === 'number' && (
+              <Text style={{ fontWeight: '600' }}>⭐ {item.rating.toFixed(1)}{typeof item.userRatingCount === 'number' ? ` (${item.userRatingCount})` : ''}</Text>
+            )}
+            {typeof item.buzzScore === 'number' && item.buzzScore >= 3 && (
+              <View style={styles.trendingChip}>
+                <Text style={styles.trendingText}>🔥 Trending</Text>
+              </View>
+            )}
+          </View>
+          {!!item.social && item.social.length > 0 && (
+            <SocialStrip items={item.social} />
           )}
           <View style={styles.ctaRow}>
             <TouchableOpacity style={styles.ctaBtn} onPress={() => openDirections(item)}>
@@ -114,7 +125,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   cardContainer: {
-    height: 160,
+    height: 260,
   },
   card: {
     flex: 1,
@@ -138,10 +149,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: '#555',
   },
-  rating: {
-    marginTop: 8,
-    fontWeight: '600',
-  },
   ctaRow: {
     flexDirection: 'row',
     marginTop: 10,
@@ -159,6 +166,18 @@ const styles = StyleSheet.create({
   ctaText: {
     color: '#fff',
     fontWeight: '600',
+    fontSize: 12,
+  },
+  trendingChip: {
+    marginLeft: 8,
+    backgroundColor: '#FFEFE6',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  trendingText: {
+    color: '#D35400',
+    fontWeight: '700',
     fontSize: 12,
   },
 });
