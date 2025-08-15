@@ -147,6 +147,22 @@ export default function MapScreen() {
     mapRef.current?.animateToRegion(newRegion, 300);
   };
 
+  const searchThisArea = async () => {
+    setIsSearching(true);
+    setSearchError(null);
+    try {
+      const data = await getNearby({ lat: region.latitude, lon: region.longitude, type: 'cafe', radius: 1500, max: 12 });
+      setPois(data);
+      if (data.length > 0) setSelectedPoiId(data[0].id);
+    } catch (e: any) {
+      setSearchError(e?.message || 'Failed to load places for this area');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const clearSearch = () => setSearchQuery('');
+
   const renderPoiItem = ({ item, index }: { item: Poi; index: number }) => {
     const isSelected = selectedPoiId === item.id;
     return (
@@ -231,7 +247,7 @@ export default function MapScreen() {
             <Ionicons name="map" size={20} color="#fff" />
             <Text style={styles.title}>Pinpoint</Text>
           </View>
-          <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]}>
+          <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]}> 
             {getStatusIcon()}
             <Text style={styles.statusText}>{getStatusText()}</Text>
           </View>
@@ -287,8 +303,20 @@ export default function MapScreen() {
             <Text style={{ color: '#666' }}>Loading places…</Text>
           </View>
         ) : pois.length === 0 ? (
-          <View style={{ padding: 16, alignItems: 'center' }}>
-            <Text style={{ color: '#666' }}>No places found nearby</Text>
+          <View style={styles.emptyState}>
+            <Ionicons name="search" size={20} color="#666" />
+            <Text style={styles.emptyTitle}>No places found nearby</Text>
+            <Text style={styles.emptySubtitle}>Try searching for something or search this area.</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+              <TouchableOpacity style={styles.primaryBtn} onPress={searchThisArea}>
+                <Text style={styles.primaryBtnText}>Search this area</Text>
+              </TouchableOpacity>
+              {searchQuery.length > 0 && (
+                <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
+                  <Text style={styles.secondaryBtnText}>Clear search</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         ) : (
           <>
@@ -333,4 +361,11 @@ const styles = StyleSheet.create({
   ctaBtn: { paddingHorizontal: 10, paddingVertical: 8, backgroundColor: '#111', borderRadius: 8 },
   ctaDisabled: { backgroundColor: '#777' },
   ctaText: { color: '#fff', fontWeight: '600', fontSize: 12 },
+  emptyState: { alignItems: 'center', paddingHorizontal: 16, paddingVertical: 20 },
+  emptyTitle: { marginTop: 8, fontWeight: '600', color: '#333' },
+  emptySubtitle: { color: '#666', marginTop: 2 },
+  primaryBtn: { backgroundColor: '#111', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 },
+  primaryBtnText: { color: '#fff', fontWeight: '600' },
+  secondaryBtn: { backgroundColor: '#eee', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 },
+  secondaryBtnText: { color: '#111', fontWeight: '600' },
 });
