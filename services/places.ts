@@ -11,8 +11,7 @@ export type Poi = {
   website?: string;
 };
 
-const DEFAULT_BASE = 'http://localhost:3001';
-const BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL as string) || DEFAULT_BASE;
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -27,18 +26,44 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function searchPlaces({ query, lat, lon }: { query: string; lat: number; lon: number }): Promise<Poi[]> {
-  const res = await fetch(`${BASE_URL}/search`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, lat, lon }),
-  });
-  const data = await handleResponse<Poi[]>(res);
-  return data;
+  const url = `${BASE_URL}/places/text?query=${encodeURIComponent(query)}&lat=${lat}&lon=${lon}`;
+  console.log('🔍 Searching places:', url);
+  
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    console.log('📡 Response status:', res.status);
+    
+    const data = await handleResponse<Poi[]>(res);
+    console.log('✅ Search results:', data.length, 'places found');
+    return data;
+  } catch (error) {
+    console.error('❌ Search failed:', error);
+    throw error;
+  }
 }
 
 export async function getNearby({ lat, lon, type = 'cafe', radius = 1500, max = 12 }: { lat: number; lon: number; type?: string; radius?: number; max?: number; }): Promise<Poi[]> {
-  const params = new URLSearchParams({ lat: String(lat), lon: String(lon), type, radius: String(radius), max: String(max) });
-  const res = await fetch(`${BASE_URL}/places/nearby?${params.toString()}`);
-  const data = await handleResponse<Poi[]>(res);
-  return data;
+  const params = new URLSearchParams({ 
+    lat: String(lat), 
+    lon: String(lon), 
+    type, 
+    radius: String(radius) 
+  });
+  const url = `${BASE_URL}/places/nearby?${params.toString()}`;
+  console.log('📍 Getting nearby places:', url);
+  
+  try {
+    const res = await fetch(url);
+    console.log('📡 Response status:', res.status);
+    
+    const data = await handleResponse<Poi[]>(res);
+    console.log('✅ Nearby results:', data.length, 'places found');
+    return data;
+  } catch (error) {
+    console.error('❌ Nearby search failed:', error);
+    throw error;
+  }
 }
