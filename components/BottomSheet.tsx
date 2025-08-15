@@ -10,9 +10,10 @@ interface Props {
 }
 
 const windowHeight = Dimensions.get('window').height;
-const EXPANDED_Y = windowHeight * 0.3;
-const COLLAPSED_Y = windowHeight - 160;
-const COLLAPSED_VISIBLE_HEIGHT = windowHeight - COLLAPSED_Y; // 160
+const EXPANDED_Y = 100; // Almost at the top, just below search bar
+const HALFWAY_Y = windowHeight * 0.5; // Halfway up, showing nav bar
+const COLLAPSED_Y = windowHeight - 80; // Just showing count at bottom
+const COLLAPSED_VISIBLE_HEIGHT = 80; // Height visible when collapsed
 
 export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed, children }: Props) {
 	const [isDragging, setIsDragging] = useState(false);
@@ -57,18 +58,30 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 			const currentSnapY = (snapY as any)._value;
 			const currentDragY = (dragY as any)._value;
 			const currentY = currentSnapY + currentDragY;
-			const midpoint = (EXPANDED_Y + COLLAPSED_Y) / 2;
-			const shouldExpand = velocityY < -500 || currentY < midpoint;
 			
-			if (shouldExpand && !expanded) {
-				snapToPosition(true);
-				onSnapExpanded();
-			} else if (!shouldExpand && expanded) {
-				snapToPosition(false);
-				onSnapCollapsed();
+			// Determine which snap point to go to based on current position and velocity
+			let targetY;
+			if (currentY < HALFWAY_Y) {
+				targetY = EXPANDED_Y;
+			} else if (currentY < COLLAPSED_Y) {
+				targetY = HALFWAY_Y;
 			} else {
-				// Snap back to current position
-				snapToPosition(expanded);
+				targetY = COLLAPSED_Y;
+			}
+			
+			// Snap to the target position
+			Animated.spring(snapY, {
+				toValue: targetY,
+				useNativeDriver: true,
+				tension: 130,
+				friction: 12,
+			}).start();
+			
+			// Call appropriate callbacks
+			if (targetY === EXPANDED_Y && !expanded) {
+				onSnapExpanded();
+			} else if (targetY === COLLAPSED_Y && expanded) {
+				onSnapCollapsed();
 			}
 			
 			// Reset drag
@@ -79,6 +92,7 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 	// Update position when expanded prop changes (but not during drag)
 	React.useEffect(() => {
 		if (!isDragging) {
+			const targetY = expanded ? EXPANDED_Y : COLLAPSED_Y;
 			snapToPosition(expanded);
 		}
 	}, [expanded, isDragging]);
@@ -95,7 +109,7 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 						<View style={styles.grabberContainer}>
 							<View style={styles.grabber} />
 						</View>
-						<View style={[styles.content, { minHeight: COLLAPSED_VISIBLE_HEIGHT, flex: 1 }]}>
+						<View style={[styles.content, { minHeight: COLLAPSED_VISIBLE_HEIGHT }]}>
 							{children}
 						</View>
 					</Animated.View>

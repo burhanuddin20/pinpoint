@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, FlatList, Linking, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Linking, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '../../components/BottomSheet';
@@ -30,23 +30,15 @@ export default function MapScreen() {
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
   const [pois, setPois] = useState<Poi[]>([]);
   const { isExpanded, setIsExpanded } = useBottomSheet();
-  
+  const [isHalfway, setIsHalfway] = useState(false);
+
   const mapRef = useRef<MapView>(null);
   const listRef = useRef<FlatList<Poi>>(null);
-  const navTranslateY = useRef(new Animated.Value(-80)).current;
 
   // Debug POI state changes
   useEffect(() => {
     // Removed debugging logs
   }, [pois, isSearching, selectedPoiId]);
-
-  useEffect(() => {
-    Animated.timing(navTranslateY, {
-      toValue: isExpanded ? 0 : -80,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
-  }, [isExpanded, navTranslateY]);
 
   useEffect(() => {
     (async () => {
@@ -163,7 +155,29 @@ export default function MapScreen() {
     }
   };
 
-  const clearSearch = () => setSearchQuery('');
+  const clearSearch = () => {
+    setSearchQuery('');
+    // Restore initial nearby places when clearing search
+    if (userLocation) {
+      loadInitialNearbyPlaces();
+    }
+  };
+
+  const loadInitialNearbyPlaces = async () => {
+    if (!userLocation) return;
+    
+    setIsSearching(true);
+    setSearchError(null);
+    try {
+      const data = await getNearby({ lat: userLocation.latitude, lon: userLocation.longitude, type: 'cafe', radius: 1500, max: 12 });
+      setPois(data);
+      if (data.length > 0) setSelectedPoiId(data[0].id);
+    } catch (e: any) {
+      setSearchError(e?.message || 'Failed to load nearby places');
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const renderPoiItem = ({ item, index }: { item: Poi; index: number }) => {
     const isSelected = selectedPoiId === item.id;
@@ -215,49 +229,25 @@ export default function MapScreen() {
     );
   };
 
-  const getStatusColor = () => {
-    switch (locationStatus) {
-      case 'granted': return '#4CAF50';
-      case 'denied': return '#F44336';
-      case 'error': return '#FF9800';
-      default: return '#2196F3';
-    }
-  };
-
-  const getStatusText = () => {
-    switch (locationStatus) {
-      case 'granted': return 'Location Active';
-      case 'denied': return 'Location Denied';
-      case 'error': return 'Location Error';
-      default: return 'Getting Location...';
-    }
-  };
-
-  const getStatusIcon = () => {
-    switch (locationStatus) {
-      case 'loading': return <Ionicons name="time" size={12} color="#fff" />;
-      case 'granted': return <Ionicons name="checkmark-circle" size={12} color="#fff" />;
-      case 'denied': return <Ionicons name="close-circle" size={12} color="#fff" />;
-      case 'error': return <Ionicons name="warning" size={12} color="#fff" />;
-      default: return <Ionicons name="time" size={12} color="#fff" />;
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
-      <Animated.View style={[styles.header, { transform: [{ translateY: navTranslateY }] }]}>
-        <View style={styles.headerContent}>
-          <View style={styles.titleContainer}>
-            <Ionicons name="map" size={20} color="#fff" />
-            <Text style={styles.title}>Pinpoint</Text>
-          </View>
-          <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]}> 
-            {getStatusIcon()}
-            <Text style={styles.statusText}>{getStatusText()}</Text>
-          </View>
-        </View>
-      </Animated.View>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <View style={styles.header}>
+        {/* Clean header with just the search bar */}
+        <SearchBar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isSearching={isSearching}
+          searchError={searchError}
+          onSubmit={handleSubmit}
+          onBackPress={() => {
+            if (searchQuery.length > 0) {
+              setSearchQuery('');
+            }
+          }}
+          poisCount={pois.length}
+        />
+      </View>
 
       <View style={styles.mapContainer}>
         <MapView
@@ -276,15 +266,6 @@ export default function MapScreen() {
           ))}
         </MapView>
 
-        <SearchBar
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          isSearching={isSearching}
-          searchError={searchError}
-          onSubmit={handleSubmit}
-          topOffset={isExpanded ? 88 : 20}
-        />
-
         <TouchableOpacity 
           style={styles.fab}
           onPress={() => {
@@ -301,8 +282,16 @@ export default function MapScreen() {
 
       <BottomSheet
         expanded={isExpanded}
-        onSnapExpanded={() => { setIsExpanded(true); fitAllMarkers(); }}
-        onSnapCollapsed={() => { setIsExpanded(false); zoomToActive(); }}
+        onSnapExpanded={() => { 
+          setIsExpanded(true); 
+          setIsHalfway(false);
+          fitAllMarkers(); 
+        }}
+        onSnapCollapsed={() => { 
+          setIsExpanded(false); 
+          setIsHalfway(false);
+          zoomToActive(); 
+        }}
       >
         {isSearching ? (
           <View style={{ padding: 16, alignItems: 'center' }}>
@@ -326,18 +315,55 @@ export default function MapScreen() {
           </View>
         ) : (
           <>
-            <Text style={{ padding: 16, color: '#666', textAlign: 'center' }}>
-              Found {pois.length} places
-            </Text>
-            <FlatList
-              ref={listRef}
-              data={pois}
-              renderItem={renderPoiItem}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={styles.listContent}
-              style={styles.list}
-            />
+            {isExpanded ? (
+              // Full expanded content
+              <>
+                <View style={styles.listHeader}>
+                  <Text style={styles.listHeaderTitle}>
+                    Found {pois.length} places
+                  </Text>
+                  <View style={styles.listHeaderActions}>
+                    <TouchableOpacity 
+                      style={[styles.secondaryBtn, isSearching && styles.secondaryBtnDisabled]} 
+                      onPress={loadInitialNearbyPlaces}
+                      disabled={isSearching}
+                    >
+                      <Text style={styles.secondaryBtnText}>
+                        {isSearching ? 'Loading...' : 'Nearby'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.secondaryBtn, isSearching && styles.secondaryBtnDisabled]} 
+                      onPress={searchThisArea}
+                      disabled={isSearching}
+                    >
+                      <Text style={styles.secondaryBtnText}>
+                        {isSearching ? 'Loading...' : 'This Area'}
+                      </Text>
+                    </TouchableOpacity>
+                    {searchQuery.length > 0 && (
+                      <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
+                        <Text style={styles.secondaryBtnText}>Clear</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+                <FlatList
+                  ref={listRef}
+                  data={pois}
+                  renderItem={renderPoiItem}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={true}
+                  contentContainerStyle={styles.listContent}
+                  style={styles.list}
+                />
+              </>
+            ) : (
+              // Collapsed state - just show count
+              <View style={styles.collapsedContent}>
+                <Text style={styles.collapsedCount}>{pois.length} places</Text>
+              </View>
+            )}
           </>
         )}
       </BottomSheet>
@@ -346,14 +372,22 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a1a' },
-  header: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#1a1a1a', paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#333', zIndex: 12 },
-  headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  titleContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-  statusIndicator: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 16, gap: 4 },
-  statusText: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  mapContainer: { flex: 1, position: 'relative' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { 
+    position: 'absolute', 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    backgroundColor: '#fff', 
+    paddingHorizontal: 20, 
+    paddingVertical: 12, 
+    paddingTop: 60, // Account for notch/dynamic island
+    zIndex: 12,
+  },
+  mapContainer: { 
+    flex: 1, 
+    position: 'relative',
+  },
   map: { flex: 1 },
   fab: { position: 'absolute', bottom: 30, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#2196F3', justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4.65 },
   listContent: { padding: 10, flexGrow: 1, paddingBottom: 20 },
@@ -376,4 +410,10 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontWeight: '600' },
   secondaryBtn: { backgroundColor: '#eee', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 },
   secondaryBtnText: { color: '#111', fontWeight: '600' },
+  secondaryBtnDisabled: { backgroundColor: '#777' },
+  listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#222', borderBottomWidth: 1, borderBottomColor: '#333' },
+  listHeaderTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  listHeaderActions: { flexDirection: 'row', gap: 8 },
+  collapsedContent: { alignItems: 'center', paddingVertical: 10 },
+  collapsedCount: { fontSize: 14, color: '#666' },
 });
