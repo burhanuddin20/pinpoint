@@ -227,3 +227,17 @@ For support or questions, please open an issue in the repository.
 ---
 
 **Built with ❤️ using Expo React Native**
+
+## Backend Places Proxy
+
+- Server is in `server/` (TypeScript Express) and proxies Google Places API (New v1).
+- Start it locally:
+
+```bash
+cd server
+npm i
+cp .env.example .env  # fill GOOGLE_PLACES_KEY
+npm run dev
+```
+
+- App expects `EXPO_PUBLIC_API_BASE_URL` to point to the server (defaults to `http://localhost:3001`).
