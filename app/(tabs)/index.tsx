@@ -291,16 +291,18 @@ export default function MapScreen() {
             <Text style={{ color: '#666' }}>No places found nearby</Text>
           </View>
         ) : (
-          <FlatList
-            ref={listRef}
-            data={pois}
-            renderItem={renderPoiItem}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-            style={styles.list}
-            getItemLayout={(_, index) => ({ length: 100, offset: index * 100, index })}
-          />
+          <>
+            <FlatList
+              ref={listRef}
+              data={pois}
+              renderItem={renderPoiItem}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+              style={styles.list}
+              getItemLayout={(_, index) => ({ length: 100, offset: index * 100, index })}
+            />
+          </>
         )}
       </BottomSheet>
     </SafeAreaView>
