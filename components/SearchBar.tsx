@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface SearchBarProps {
 	searchQuery: string;
@@ -30,14 +30,23 @@ export default function SearchBar({
           </TouchableOpacity>
         )}
         
-        <View style={styles.searchBar}>
+        <TouchableOpacity style={styles.searchBar} onPress={() => {}}>
           <View style={styles.searchInputContainer}>
-            <Text style={styles.searchTitle}>Places in map area</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search places..."
+              placeholderTextColor="#999"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={onSubmit}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
             <Text style={styles.searchSubtitle}>
               {searchQuery.length > 0 ? `Searching for "${searchQuery}"` : `${poisCount} places found`}
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
         
         <TouchableOpacity style={styles.filterButton}>
           <Ionicons name="options" size={24} color="#000" />
@@ -93,6 +102,14 @@ const styles = StyleSheet.create({
   },
   searchInputContainer: {
     flex: 1,
+  },
+  searchInput: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    paddingVertical: 0,
+    textAlign: 'center',
+    marginBottom: 2,
   },
   searchTitle: {
     fontSize: 16,
