@@ -61,7 +61,7 @@ export default function MapScreen() {
         setIsSearching(true);
         setSearchError(null);
         try {
-          const data = await getNearby({ lat: coords.latitude, lon: coords.longitude, type: 'cafe', radius: 1500, max: 12 });
+          const data = await getNearby({ lat: coords.latitude, lon: coords.longitude, type: 'cafe', radius: 1500 });
           setPois(data);
           if (data.length > 0) setSelectedPoiId(data[0].id);
         } catch (e: any) {
@@ -145,7 +145,7 @@ export default function MapScreen() {
       setIsSearching(true);
       setSearchError(null);
       try {
-        getNearby({ lat: userLocation.latitude, lon: userLocation.longitude, type: 'cafe', radius: 1500, max: 12 }).then((data) => {
+        getNearby({ lat: userLocation.latitude, lon: userLocation.longitude, type: 'cafe', radius: 1500 }).then((data) => {
           setPois(data);
           if (data.length > 0) setSelectedPoiId(data[0].id);
         }).catch((e: any) => {
@@ -302,15 +302,13 @@ export default function MapScreen() {
             {isExpanded ? (
               // Expanded state - show full list
               <>
-                <View style={styles.collapsedContent}>
+                <View style={styles.cardHeader}>
                   <Text style={styles.collapsedCount}>
                     {pois.length} places
                   </Text>
-                  {searchQuery.length > 0 && (
-                    <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
-                      <Text style={styles.secondaryBtnText}>Clear</Text>
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity style={styles.hotButton} onPress={clearSearch}>
+                    <Text style={styles.hotButtonText}>Hot right now</Text>
+                  </TouchableOpacity>
                 </View>
                 <FlatList
                   ref={listRef}
@@ -326,15 +324,13 @@ export default function MapScreen() {
             ) : isHalfway ? (
               // Halfway state - show compact list with same POI cards
               <View style={styles.halfwayContent}>
-                <View style={styles.collapsedContent}>
+                <View style={styles.cardHeader}>
                   <Text style={styles.collapsedCount}>
                     {pois.length} places
                   </Text>
-                  {searchQuery.length > 0 && (
-                    <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
-                      <Text style={styles.secondaryBtnText}>Clear</Text>
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity style={styles.hotButton} onPress={clearSearch}>
+                    <Text style={styles.hotButtonText}>Hot right now</Text>
+                  </TouchableOpacity>
                 </View>
                 <FlatList
                   ref={listRef}
@@ -457,5 +453,27 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     height: '100%',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    minHeight: 40,
+  },
+  hotButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  hotButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
   },
 });
