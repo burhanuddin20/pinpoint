@@ -29,8 +29,7 @@ export default function MapScreen() {
   // POI states
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
   const [pois, setPois] = useState<Poi[]>([]);
-  const { isExpanded, setIsExpanded } = useBottomSheet();
-  const [isHalfway, setIsHalfway] = useState(false);
+  const { isExpanded, setIsExpanded, isHalfway, setIsHalfway } = useBottomSheet();
 
   const mapRef = useRef<MapView>(null);
   const listRef = useRef<FlatList<Poi>>(null);
@@ -138,44 +137,26 @@ export default function MapScreen() {
     mapRef.current?.animateToRegion(newRegion, 300);
   };
 
-  const searchThisArea = async () => {
-    if (!userLocation) return;
-    
-    setIsSearching(true);
-    setSearchError(null);
-    try {
-      const data = await getNearby({ lat: userLocation.latitude, lon: userLocation.longitude, type: 'cafe', radius: 1500, max: 12 });
-      setPois(data);
-      if (data.length > 0) setSelectedPoiId(data[0].id);
-      setSearchQuery(''); // Clear the search query
-    } catch (e: any) {
-      setSearchError(e?.message || 'Failed to load places for this area');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   const clearSearch = () => {
     setSearchQuery('');
     // Restore initial nearby places when clearing search
     if (userLocation) {
-      loadInitialNearbyPlaces();
-    }
-  };
-
-  const loadInitialNearbyPlaces = async () => {
-    if (!userLocation) return;
-    
-    setIsSearching(true);
-    setSearchError(null);
-    try {
-      const data = await getNearby({ lat: userLocation.latitude, lon: userLocation.longitude, type: 'cafe', radius: 1500, max: 12 });
-      setPois(data);
-      if (data.length > 0) setSelectedPoiId(data[0].id);
-    } catch (e: any) {
-      setSearchError(e?.message || 'Failed to load nearby places');
-    } finally {
-      setIsSearching(false);
+      // Load initial nearby places
+      setIsSearching(true);
+      setSearchError(null);
+      try {
+        getNearby({ lat: userLocation.latitude, lon: userLocation.longitude, type: 'cafe', radius: 1500, max: 12 }).then((data) => {
+          setPois(data);
+          if (data.length > 0) setSelectedPoiId(data[0].id);
+        }).catch((e: any) => {
+          setSearchError(e?.message || 'Failed to load nearby places');
+        }).finally(() => {
+          setIsSearching(false);
+        });
+      } catch (error) {
+        setSearchError('Failed to load nearby places');
+        setIsSearching(false);
+      }
     }
   };
 
@@ -282,15 +263,23 @@ export default function MapScreen() {
 
       <BottomSheet
         expanded={isExpanded}
-        onSnapExpanded={() => { 
-          setIsExpanded(true); 
+        onSnapExpanded={() => {
+          console.log(`🎯 MAIN SCREEN: onSnapExpanded called`);
+          setIsExpanded(true);
           setIsHalfway(false);
-          fitAllMarkers(); 
+          fitAllMarkers();
         }}
-        onSnapCollapsed={() => { 
-          setIsExpanded(false); 
+        onSnapCollapsed={() => {
+          console.log(`🎯 MAIN SCREEN: onSnapCollapsed called`);
+          setIsExpanded(false);
           setIsHalfway(false);
-          zoomToActive(); 
+          zoomToActive();
+        }}
+        onSnapHalfway={() => {
+          console.log(`🎯 MAIN SCREEN: onSnapHalfway called`);
+          setIsExpanded(false);
+          setIsHalfway(true);
+          zoomToActive();
         }}
       >
         {isSearching ? (
@@ -302,16 +291,11 @@ export default function MapScreen() {
             <Ionicons name="search" size={20} color="#666" />
             <Text style={styles.emptyTitle}>No places found nearby</Text>
             <Text style={styles.emptySubtitle}>Try searching for something or search this area.</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-              <TouchableOpacity style={styles.primaryBtn} onPress={searchThisArea}>
-                <Text style={styles.primaryBtnText}>Search this area</Text>
+            {searchQuery.length > 0 && (
+              <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
+                <Text style={styles.secondaryBtnText}>Clear search</Text>
               </TouchableOpacity>
-              {searchQuery.length > 0 && (
-                <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
-                  <Text style={styles.secondaryBtnText}>Clear search</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            )}
           </View>
         ) : (
           <>
@@ -322,31 +306,11 @@ export default function MapScreen() {
                   <Text style={styles.listHeaderTitle}>
                     Found {pois.length} places
                   </Text>
-                  <View style={styles.listHeaderActions}>
-                    <TouchableOpacity 
-                      style={[styles.secondaryBtn, isSearching && styles.secondaryBtnDisabled]} 
-                      onPress={loadInitialNearbyPlaces}
-                      disabled={isSearching}
-                    >
-                      <Text style={styles.secondaryBtnText}>
-                        {isSearching ? 'Loading...' : 'Nearby'}
-                      </Text>
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
+                      <Text style={styles.secondaryBtnText}>Clear</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.secondaryBtn, isSearching && styles.secondaryBtnDisabled]} 
-                      onPress={searchThisArea}
-                      disabled={isSearching}
-                    >
-                      <Text style={styles.secondaryBtnText}>
-                        {isSearching ? 'Loading...' : 'This Area'}
-                      </Text>
-                    </TouchableOpacity>
-                    {searchQuery.length > 0 && (
-                      <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
-                        <Text style={styles.secondaryBtnText}>Clear</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
+                  )}
                 </View>
                 <FlatList
                   ref={listRef}
@@ -358,10 +322,35 @@ export default function MapScreen() {
                   style={styles.list}
                 />
               </>
+            ) : isHalfway ? (
+              // Halfway state - show compact list with same POI cards
+              <View style={styles.halfwayContent}>
+                <View style={styles.listHeader}>
+                  <Text style={styles.listHeaderTitle}>
+                    Found {pois.length} places
+                  </Text>
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity style={styles.secondaryBtn} onPress={clearSearch}>
+                      <Text style={styles.secondaryBtnText}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <FlatList
+                  ref={listRef}
+                  data={pois}
+                  renderItem={renderPoiItem}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={true}
+                  contentContainerStyle={styles.listContent}
+                  style={styles.halfwayList}
+                  onScrollToIndexFailed={() => {}}
+                />
+              </View>
             ) : (
               // Collapsed state - just show count
               <View style={styles.collapsedContent}>
                 <Text style={styles.collapsedCount}>{pois.length} places</Text>
+                <Text style={styles.collapsedHelp}>Swipe up to see more</Text>
               </View>
             )}
           </>
@@ -406,14 +395,48 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingHorizontal: 16, paddingVertical: 20 },
   emptyTitle: { marginTop: 8, fontWeight: '600', color: '#333' },
   emptySubtitle: { color: '#666', marginTop: 2 },
-  primaryBtn: { backgroundColor: '#111', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 },
-  primaryBtnText: { color: '#fff', fontWeight: '600' },
-  secondaryBtn: { backgroundColor: '#eee', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 },
-  secondaryBtnText: { color: '#111', fontWeight: '600' },
-  secondaryBtnDisabled: { backgroundColor: '#777' },
-  listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#222', borderBottomWidth: 1, borderBottomColor: '#333' },
-  listHeaderTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
-  listHeaderActions: { flexDirection: 'row', gap: 8 },
+  secondaryBtn: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d0d0d0',
+  },
+  secondaryBtnText: {
+    color: '#333',
+    fontWeight: '500',
+    fontSize: 12,
+  },
+  listHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    backgroundColor: '#fff', 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#e0e0e0' 
+  },
+  listHeaderTitle: { 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    color: '#333' 
+  },
   collapsedContent: { alignItems: 'center', paddingVertical: 10 },
   collapsedCount: { fontSize: 14, color: '#666' },
+  collapsedHelp: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  halfwayContent: { 
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  halfwayList: { 
+    flex: 1,
+    minHeight: 0,
+  },
 });

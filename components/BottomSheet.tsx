@@ -1,25 +1,38 @@
 import React, { useRef, useState } from 'react';
-import { Animated, Dimensions, StyleSheet, View } from 'react-native';
+import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 
 interface Props {
 	expanded: boolean;
 	onSnapExpanded: () => void;
 	onSnapCollapsed: () => void;
+	onSnapHalfway?: () => void;
 	children: React.ReactNode;
 }
 
 const windowHeight = Dimensions.get('window').height;
-const EXPANDED_Y = 100; // Almost at the top, just below search bar
-const HALFWAY_Y = windowHeight * 0.5; // Halfway up, showing nav bar
-const COLLAPSED_Y = windowHeight - 80; // Just showing count at bottom
-const COLLAPSED_VISIBLE_HEIGHT = 80; // Height visible when collapsed
+const EXPANDED_Y = 120; // Just below search bar with some padding
+const HALFWAY_Y = windowHeight * 0.4; // 40% up the screen for better visibility
+const COLLAPSED_Y = windowHeight - 100; // Just showing count at bottom, but not below screen
+const COLLAPSED_VISIBLE_HEIGHT = 100; // Height visible when collapsed
 
-export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed, children }: Props) {
+export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed, onSnapHalfway, children }: Props) {
 	const [isDragging, setIsDragging] = useState(false);
+	const [currentSnapPoint, setCurrentSnapPoint] = useState<'collapsed' | 'halfway' | 'expanded'>(
+		expanded ? 'expanded' : 'collapsed'
+	);
+	
 	const snapY = useRef(new Animated.Value(expanded ? EXPANDED_Y : COLLAPSED_Y)).current;
 	const dragY = useRef(new Animated.Value(0)).current;
 	const panRef = useRef(null);
+
+	console.log(`🚀 BottomSheet initialized:`);
+	console.log(`   - expanded prop: ${expanded}`);
+	console.log(`   - currentSnapPoint: ${currentSnapPoint}`);
+	console.log(`   - EXPANDED_Y: ${EXPANDED_Y}`);
+	console.log(`   - HALFWAY_Y: ${HALFWAY_Y}`);
+	console.log(`   - COLLAPSED_Y: ${COLLAPSED_Y}`);
+	console.log(`   - initial snapY: ${expanded ? EXPANDED_Y : COLLAPSED_Y}`);
 
 	// Combine snap and drag with clamped range for natural elasticity
 	const combinedY = Animated.add(snapY, dragY);
@@ -29,8 +42,22 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 		extrapolate: 'clamp',
 	});
 
-	const snapToPosition = (toExpanded: boolean) => {
-		const targetY = toExpanded ? EXPANDED_Y : COLLAPSED_Y;
+	const snapToPosition = (snapPoint: 'collapsed' | 'halfway' | 'expanded') => {
+		let targetY: number;
+		
+		switch (snapPoint) {
+			case 'expanded':
+				targetY = EXPANDED_Y;
+				break;
+			case 'halfway':
+				targetY = HALFWAY_Y;
+				break;
+			case 'collapsed':
+				targetY = COLLAPSED_Y;
+				break;
+		}
+		
+		console.log(`🎯 SNAPPING: ${currentSnapPoint} → ${snapPoint}`);
 		
 		Animated.spring(snapY, {
 			toValue: targetY,
@@ -38,6 +65,8 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 			tension: 130,
 			friction: 12,
 		}).start();
+		
+		setCurrentSnapPoint(snapPoint);
 	};
 
 	const onGestureEvent = Animated.event(
@@ -46,7 +75,7 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 	);
 
 	const onHandlerStateChange = (event: any) => {
-		const { state, velocityY } = event.nativeEvent;
+		const { state, velocityY, translationY } = event.nativeEvent;
 		
 		if (state === State.BEGAN) {
 			setIsDragging(true);
@@ -60,28 +89,57 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 			const currentY = currentSnapY + currentDragY;
 			
 			// Determine which snap point to go to based on current position and velocity
-			let targetY;
-			if (currentY < HALFWAY_Y) {
-				targetY = EXPANDED_Y;
-			} else if (currentY < COLLAPSED_Y) {
-				targetY = HALFWAY_Y;
+			let targetSnapPoint: 'collapsed' | 'halfway' | 'expanded';
+			
+			// Check if we've moved significantly in any direction
+			const hasMovedUp = translationY < -50;
+			const hasMovedDown = translationY > 50;
+			
+			console.log(`📊 GESTURE: velocity=${velocityY.toFixed(0)}, translation=${translationY.toFixed(0)}, current=${currentSnapPoint}`);
+			
+			// Lower velocity threshold for better responsiveness
+			if (velocityY < -200 || hasMovedUp) {
+				// Swiping up - go to next state
+				if (currentSnapPoint === 'collapsed') {
+					targetSnapPoint = 'halfway';
+				} else if (currentSnapPoint === 'halfway') {
+					targetSnapPoint = 'expanded';
+				} else {
+					targetSnapPoint = 'expanded';
+				}
+				console.log(`⬆️  UP: ${currentSnapPoint} → ${targetSnapPoint}`);
+			} else if (velocityY > 200 || hasMovedDown) {
+				// Swiping down - go to previous state
+				if (currentSnapPoint === 'expanded') {
+					targetSnapPoint = 'halfway';
+				} else if (currentSnapPoint === 'halfway') {
+					targetSnapPoint = 'collapsed';
+				} else {
+					targetSnapPoint = 'collapsed';
+				}
+				console.log(`⬇️  DOWN: ${currentSnapPoint} → ${targetSnapPoint}`);
 			} else {
-				targetY = COLLAPSED_Y;
+				// Low velocity - snap based on position with better thresholds
+				if (currentY < HALFWAY_Y * 0.8) {
+					targetSnapPoint = 'expanded';
+				} else if (currentY < COLLAPSED_Y * 0.9) {
+					targetSnapPoint = 'halfway';
+				} else {
+					targetSnapPoint = 'collapsed';
+				}
+				console.log(`📍 POSITION: ${currentSnapPoint} → ${targetSnapPoint}`);
 			}
 			
 			// Snap to the target position
-			Animated.spring(snapY, {
-				toValue: targetY,
-				useNativeDriver: true,
-				tension: 130,
-				friction: 12,
-			}).start();
+			snapToPosition(targetSnapPoint);
 			
 			// Call appropriate callbacks
-			if (targetY === EXPANDED_Y && !expanded) {
+			if (targetSnapPoint === 'expanded' && currentSnapPoint !== 'expanded') {
 				onSnapExpanded();
-			} else if (targetY === COLLAPSED_Y && expanded) {
+			} else if (targetSnapPoint === 'collapsed' && currentSnapPoint !== 'collapsed') {
 				onSnapCollapsed();
+			} else if (targetSnapPoint === 'halfway' && onSnapHalfway && currentSnapPoint !== 'halfway') {
+				onSnapHalfway();
 			}
 			
 			// Reset drag
@@ -89,13 +147,26 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 		}
 	};
 
-	// Update position when expanded prop changes (but not during drag)
-	React.useEffect(() => {
-		if (!isDragging) {
-			const targetY = expanded ? EXPANDED_Y : COLLAPSED_Y;
-			snapToPosition(expanded);
-		}
-	}, [expanded, isDragging]);
+	// Remove the problematic useEffect that was overriding gesture state
+	// React.useEffect(() => {
+	// 	console.log(`🔄 useEffect triggered - expanded: ${expanded}, isDragging: ${isDragging}, currentSnapPoint: ${currentSnapPoint}`);
+	// 	
+	// 	if (!isDragging) {
+	// 		// Only update if we're not in the middle of a gesture
+	// 		// and if the expanded prop actually matches our current state
+	// 		if (expanded && currentSnapPoint !== 'expanded') {
+	// 			console.log(`🔄 useEffect: forcing to expanded`);
+	// 			snapToPosition('expanded');
+	// 		} else if (!expanded && currentSnapPoint === 'expanded') {
+	// 			console.log(`🔄 useEffect: forcing to collapsed`);
+	// 			snapToPosition('collapsed');
+	// 		} else {
+	// 			console.log(`🔄 useEffect: no change needed`);
+	// 		}
+	// 	} else {
+	// 			console.log(`🔄 useEffect: ignoring (dragging in progress)`);
+	// 	}
+	// }, [expanded, isDragging]);
 
 	return (
 		<View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -107,7 +178,10 @@ export default function BottomSheet({ expanded, onSnapExpanded, onSnapCollapsed,
 				>
 					<Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}> 
 						<View style={styles.grabberContainer}>
-							<View style={styles.grabber} />
+							<View style={[styles.grabber, { backgroundColor: currentSnapPoint === 'expanded' ? '#4CAF50' : currentSnapPoint === 'halfway' ? '#FF9800' : '#ddd' }]} />
+							<Text style={styles.stateIndicator}>
+								{currentSnapPoint === 'expanded' ? 'EXPANDED' : currentSnapPoint === 'halfway' ? 'HALFWAY' : 'COLLAPSED'}
+							</Text>
 						</View>
 						<View style={[styles.content, { minHeight: COLLAPSED_VISIBLE_HEIGHT }]}>
 							{children}
@@ -149,5 +223,10 @@ const styles = StyleSheet.create({
 	},
 	content: {
 		paddingTop: 8,
+	},
+	stateIndicator: {
+		marginTop: 4,
+		fontSize: 12,
+		color: '#888',
 	},
 });

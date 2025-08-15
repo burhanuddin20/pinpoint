@@ -8,7 +8,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { isExpanded } = useBottomSheet();
+  const { isExpanded, isHalfway } = useBottomSheet();
 
   return (
     <Tabs
@@ -16,7 +16,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarStyle: { 
-          display: isExpanded ? 'flex' : 'none',
+          display: (isExpanded || isHalfway) ? 'flex' : 'none',
           backgroundColor: '#1a1a1a',
           borderTopColor: '#333',
         },
@@ -30,7 +30,7 @@ export default function TabLayout() {
         listeners={{
           tabPress: (e) => {
             // Prevent navigation when bottom sheet is collapsed
-            if (!isExpanded) {
+            if (!isExpanded && !isHalfway) {
               e.preventDefault();
             }
           },
@@ -45,7 +45,7 @@ export default function TabLayout() {
         listeners={{
           tabPress: (e) => {
             // Prevent navigation when bottom sheet is collapsed
-            if (!isExpanded) {
+            if (!isExpanded && !isHalfway) {
               e.preventDefault();
             }
           },
