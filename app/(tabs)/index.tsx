@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '../../components/BottomSheet';
 import PoiMarker from '../../components/PoiMarker';
 import SearchBar from '../../components/SearchBar';
-import SocialStrip from '../../components/SocialStrip';
 import { useBottomSheet } from '../../contexts/BottomSheetContext';
 import type { Poi } from '../../services/places';
 import { getNearby, searchPlaces } from '../../services/places';
@@ -178,18 +177,8 @@ export default function MapScreen() {
         {!!item.formattedAddress && (
           <Text style={{ color: '#666' }} numberOfLines={2}>{item.formattedAddress}</Text>
         )}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-          {typeof item.rating === 'number' && (
-            <Text style={{ color: '#444' }}>⭐ {item.rating.toFixed(1)}{typeof item.userRatingCount === 'number' ? ` (${item.userRatingCount})` : ''}</Text>
-          )}
-          {typeof item.buzzScore === 'number' && item.buzzScore >= 3 && (
-            <View style={styles.trendingChip}>
-              <Text style={styles.trendingText}>🔥 Trending</Text>
-            </View>
-          )}
-        </View>
-        {!!item.social && item.social.length > 0 && (
-          <SocialStrip items={item.social} />
+        {typeof item.rating === 'number' && (
+          <Text style={{ marginTop: 6, color: '#444' }}>⭐ {item.rating.toFixed(1)}{typeof item.userRatingCount === 'number' ? ` (${item.userRatingCount})` : ''}</Text>
         )}
         <View style={styles.ctaRow}>
           <TouchableOpacity
@@ -485,18 +474,6 @@ const styles = StyleSheet.create({
   hotButtonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 12,
-  },
-  trendingChip: {
-    marginLeft: 8,
-    backgroundColor: '#FFEFE6',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  trendingText: {
-    color: '#D35400',
-    fontWeight: '700',
     fontSize: 12,
   },
 });

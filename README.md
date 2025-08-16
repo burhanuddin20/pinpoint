@@ -57,20 +57,20 @@ The app features:
 
 ### 1. Clone the Repository
 
-```
+```bash
 git clone <repository-url>
 cd pinpoint
 ```
 
 ### 2. Install Dependencies
 
-```
+```bash
 npm install
 ```
 
 ### 3. Start the Development Server
 
-```
+```bash
 npx expo start
 ```
 
@@ -233,12 +233,11 @@ For support or questions, please open an issue in the repository.
 - Server is in `server/` (TypeScript Express) and proxies Google Places API (New v1).
 - Start it locally:
 
-```
+```bash
 cd server
 npm i
-cp .env.example .env  # fill GOOGLE_PLACES_KEY and (optional) social keys
+cp .env.example .env  # fill GOOGLE_PLACES_KEY
 npm run dev
 ```
 
 - App expects `EXPO_PUBLIC_API_BASE_URL` to point to the server (defaults to `http://localhost:3001`).
-- Social enrichment uses only public TikTok/Instagram URLs via web search plus official oEmbed. If Instagram oEmbed creds are missing, TikTok still works; no scraping is performed.
